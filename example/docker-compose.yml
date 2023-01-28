@@ -1,0 +1,18 @@
+version: '3.4'
+services:
+  game_server:
+    image: lugobots/server:${SERVER_VERSION:-latest}
+    command: play --timer-mode=wait
+    ports:
+      - "8080:8080"
+  player_01:
+    build:
+      context: ../
+      dockerfile: example/Dockerfile
+    environment:
+      BOT_NUMBER: 1
+      BOT_TEAM: "home"
+      BOT_GRPC_URL: "game_server:5000"
+    depends_on:
+      - game_server
+

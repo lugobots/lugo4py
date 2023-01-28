@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import broadcast_pb2 as broadcast__pb2
+from . import broadcast_pb2 as broadcast__pb2
 
 
 class BroadcastStub(object):

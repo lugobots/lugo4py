@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import remote_pb2 as remote__pb2
+from . import remote_pb2 as remote__pb2
 
 
 class RemoteStub(object):
