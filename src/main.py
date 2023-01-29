@@ -3,6 +3,7 @@ from .protos import server_pb2
 from .protos import server_pb2_grpc as server_grpc
 from typing import Callable
 import grpc
+import json
 import os
 import random
 import threading
@@ -20,7 +21,7 @@ class LugoClient(server_grpc.GameServicer):
         self._initial_position = initial_position
 
     def play(self, callback: Callable[[server_pb2.GameSnapshot], server_pb2.OrderSet]):
-        _callback = callback
+        self._callback = callback
         team = os.environ.get("BOT_TEAM").upper()
         number = int(os.environ.get("BOT_NUMBER"))
         token = os.environ.get("BOT_TOKEN")
@@ -37,9 +38,9 @@ class LugoClient(server_grpc.GameServicer):
 
     def _init(self, join_request: server_pb2.JoinRequest) -> None:
         for snapshot in self._client.JoinATeam(join_request):
-            if snapshot.game_state == server_pb2.GameSnapshot.GameState.OVER: 
+            if snapshot.state == server_pb2.GameSnapshot.State.OVER: 
                 break
-            orders = _callback(snapshot)
+            orders = self._callback(snapshot)
             self._client.SendOrders(orders)
 
     @classmethod

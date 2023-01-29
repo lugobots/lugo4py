@@ -7,7 +7,7 @@ def test(*args):
 
 
 def one():
-    client = LugoClient.new_client(physics_pb2.Point(x=0, y=0))
+    client = LugoClient.new_client(physics_pb2.Point(x=2200, y=5000))
     client.play(test)
 
 
