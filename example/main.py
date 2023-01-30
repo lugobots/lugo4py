@@ -4,8 +4,8 @@ from src.main import LugoClient
 from src.protos import physics_pb2
 
 
-def test(*args: server_pb2.GameSnapshot):
-    print(args.turn)
+def test(snapshot: server_pb2.GameSnapshot):
+    print(snapshot.turn)
     #     print("cool")
 
 
