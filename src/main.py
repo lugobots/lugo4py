@@ -38,10 +38,11 @@ class LugoClient(server_grpc.GameServicer):
 
     def _init(self, join_request: server_pb2.JoinRequest) -> None:
         for snapshot in self._client.JoinATeam(join_request):
-            if snapshot.state == server_pb2.GameSnapshot.State.OVER: 
+            if snapshot.state == server_pb2.GameSnapshot.State.OVER:
                 break
             orders = self._callback(snapshot)
-            self._client.SendOrders(orders)
+            if orders is not None:
+                self._client.SendOrders(orders)
 
     @classmethod
     def new_client(cls, initial_position: physics_pb2.Point) -> 'LugoClient':
@@ -67,4 +68,3 @@ def _get_client() -> server_grpc.GameStub:
     else:
         channel = grpc.secure_channel(url, grpc.ssl_channel_credentials())
     return server_grpc.GameStub(channel)
-
