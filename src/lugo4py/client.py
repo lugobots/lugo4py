@@ -1,12 +1,17 @@
-from .protos import physics_pb2
-from .protos import server_pb2
-from .protos import server_pb2_grpc as server_grpc
-from typing import Callable
 import grpc
 import json
 import os
 import random
 import threading
+from typing import Tuple, Callable
+
+from .protos import physics_pb2
+from .protos import server_pb2
+from .protos import server_pb2_grpc as server_grpc
+
+from . import stub
+from . import configurator
+from . import game_snapshot
 
 
 class LugoClient(server_grpc.GameServicer):
@@ -52,7 +57,7 @@ class LugoClient(server_grpc.GameServicer):
         return instance
 
 
-def _get_config() -> (str, bool):
+def _get_config() -> Tuple[str, bool]:
     url = os.environ.get("BOT_GRPC_URL")
     if url is None:
         raise Exception("BOT_GRPC_URL is not set")

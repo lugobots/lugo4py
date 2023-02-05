@@ -1,0 +1,17 @@
+README.md
+pyproject.toml
+setup.cfg
+src/lugo4py.egg-info/PKG-INFO
+src/lugo4py.egg-info/SOURCES.txt
+src/lugo4py.egg-info/dependency_links.txt
+src/lugo4py.egg-info/top_level.txt
+src/lugoclient/__init__.py
+src/lugoclient/client.py
+src/lugoclient/configurator.py
+src/lugoclient/game_snapshot.py
+src/lugoclient/geo.py
+src/lugoclient/goal.py
+src/lugoclient/mapper.py
+src/lugoclient/orientation.py
+src/lugoclient/specs.py
+src/lugoclient/stub.py
