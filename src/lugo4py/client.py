@@ -3,7 +3,9 @@ import json
 import os
 import random
 import threading
-from typing import Tuple, Callable
+import asyncio
+import datetime
+from typing import Tuple, Callable, Awaitable, Any
 
 from .protos import physics_pb2
 from .protos import server_pb2
@@ -13,6 +15,7 @@ from . import stub
 from . import configurator
 from . import game_snapshot
 
+RawTurnProcessor = Callable[[Any, Any], Awaitable[Any]]
 
 class LugoClient(server_grpc.GameServicer):
     _client: server_grpc.GameStub
@@ -43,10 +46,27 @@ class LugoClient(server_grpc.GameServicer):
 
     def _init(self, join_request: server_pb2.JoinRequest) -> None:
         for snapshot in self._client.JoinATeam(join_request):
-            if snapshot.state == server_pb2.GameSnapshot.State.OVER: 
-                break
-            orders = self._callback(snapshot)
-            self._client.SendOrders(orders)
+            try:
+                if snapshot.state == server_pb2.GameSnapshot.State.OVER:
+                    break 
+
+                elif snapshot.state == server_pb2.GameSnapshot.State.LISTENING:
+                    
+                    orders = self._callback(snapshot)
+
+                    if orders:
+                        self._client.SendOrders(orders)
+                        pass
+                    else:
+                        print(f"[turn #{snapshot.turn}] bot did not return orders")
+
+                elif snapshot.state == server_pb2.GameSnapshot.State.GET_READY:
+                    # await self.getting_ready_handler(snapshot)
+                    pass
+
+            except Exception as e:
+                print("internal error processing turn", e)
+            
 
     @classmethod
     def new_client(cls, initial_position: physics_pb2.Point) -> 'LugoClient':
