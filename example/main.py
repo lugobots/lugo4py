@@ -1,5 +1,6 @@
 import sys
 sys.path.append("../src")
+sys.path.append("./src")
 
 from lugo4py.loader import EnvVarLoader
 from lugo4py.snapshot import GameSnapshotReader
