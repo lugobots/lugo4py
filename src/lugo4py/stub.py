@@ -1,8 +1,13 @@
 from .protos.server_pb2 import GameSnapshot, OrderSet
 from abc import ABC, abstractmethod
-from typing import Void
 
-PLAYER_STATE  = ["supporting", "holding","defending","disputing"]
+class PlayerState(object):
+    SUPPORTING = 0
+    HOLDING = 1
+    DEFENDING = 2
+    DISPUTING = 3 
+
+PLAYER_STATE = PlayerState()
 
 class Bot(ABC):
     @abstractmethod
@@ -26,7 +31,7 @@ class Bot(ABC):
         pass
 
     @abstractmethod
-    def gettingReady (snapshot: GameSnapshot) -> Void :
+    def gettingReady (snapshot: GameSnapshot):
         pass
 
 

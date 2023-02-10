@@ -11,7 +11,7 @@ def NewVector(fromPoint : physics_pb2.Point, toPoint : physics_pb2.Point) :
     return v
 
 def normalize(v : physics_pb2.Vector):
-    length = len(v)
+    length = getLength(v)
     return getScaledVector(v, 100 / length)
 
 def getLength(v: physics_pb2.Vector):
@@ -20,7 +20,7 @@ def getLength(v: physics_pb2.Vector):
 def getScaledVector(v: physics_pb2.Vector, scale : float):
     if (scale <= 0):
         raise RuntimeError("Cector can not have zero length")
-    v2 = ()
+    v2 = physics_pb2.Vector()
     v2.x = v.x * scale
     v2.y = v.y * scale
     return v2

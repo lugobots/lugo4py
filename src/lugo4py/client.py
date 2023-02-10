@@ -7,25 +7,27 @@ import asyncio
 import datetime
 from typing import Tuple, Callable, Awaitable, Any
 
-from .protos import physics_pb2
+from .protos.physics_pb2 import Point, Vector
 from .protos import server_pb2
 from .protos import server_pb2_grpc as server_grpc
 
-from . import stub
-from . import configurator
-from . import game_snapshot
+from .stub import Bot, PLAYER_STATE
+from .loader import EnvVarLoader
+from .snapshot import defineState
+
+PROTOCOL_VERSION = "1.0.0"
 
 RawTurnProcessor = Callable[[Any, Any], Awaitable[Any]]
 
 class LugoClient(server_grpc.GameServicer):
     _client: server_grpc.GameStub
-    _initial_position: physics_pb2.Point
+    _initial_position: Point
     callback: Callable[[server_pb2.GameSnapshot], server_pb2.OrderSet]
 
     def set_client(self, client: server_grpc.GameStub):
         self._client = client
 
-    def set_initial_position(self, initial_position: physics_pb2.Point):
+    def set_initial_position(self, initial_position: Point):
         self._initial_position = initial_position
 
     def play(self, callback: Callable[[server_pb2.GameSnapshot], server_pb2.OrderSet]):
@@ -69,7 +71,7 @@ class LugoClient(server_grpc.GameServicer):
             
 
     @classmethod
-    def new_client(cls, initial_position: physics_pb2.Point) -> 'LugoClient':
+    def new_client(cls, initial_position: Point) -> 'LugoClient':
         instance = cls()
         instance.set_initial_position(initial_position)
         client = _get_client()

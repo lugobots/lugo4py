@@ -3,7 +3,6 @@ from .protos import server_pb2
 
 from . import specs
 
-from typing import Int
 from math import floor
 
 # ErrMinCols defines an error for invalid number of cols

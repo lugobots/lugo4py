@@ -1,5 +1,4 @@
-from .client import Client, NewClientFromConfig
-from .configurator import EnvVatLoader
+from .loader import EnvVarLoader
 from .goal import Goal
 from .mapper import *
 from . import orientation
@@ -12,8 +11,9 @@ from .protos import server_pb2
 
 # import * as Lugo from './proto_exported'
 # import * as rl from "./rl/index"
-
-DIRECTION = {}
+class Direction(object):
+    pass
+DIRECTION = Direction()
 DIRECTION.FORWARD = 0
 DIRECTION.BACKWARD = 1,
 DIRECTION.LEFT = 2,
@@ -25,29 +25,29 @@ DIRECTION.FORWARD_RIGHT = 7
 
 homeGoalCenter = Point()
 homeGoalCenter.x = (0)
-homeGoalCenter.y = (specs.MAX_Y_COORDINATE / 2)
+homeGoalCenter.y = int(specs.MAX_Y_COORDINATE / 2)
 
 homeGoalTopPole = Point()
 homeGoalTopPole.x = (0)
-homeGoalTopPole.y = (specs.GOAL_MAX_Y)
+homeGoalTopPole.y = int(specs.GOAL_MAX_Y)
 
 homeGoalBottomPole = Point()
 homeGoalBottomPole.x = (0)
-homeGoalBottomPole.y = (specs.GOAL_MIN_Y)
+homeGoalBottomPole.y = int(specs.GOAL_MIN_Y)
 
 
 awayGoalCenter = Point()
-awayGoalCenter.x = (specs.MAX_X_COORDINATE)
-awayGoalCenter.y = (specs.MAX_Y_COORDINATE / 2)
+awayGoalCenter.x = int(specs.MAX_X_COORDINATE)
+awayGoalCenter.y = int(specs.MAX_Y_COORDINATE / 2)
 
 
 awayGoalTopPole = Point()
-awayGoalTopPole.x = (specs.MAX_X_COORDINATE)
-awayGoalTopPole.y = (specs.GOAL_MAX_Y)
+awayGoalTopPole.x = int(specs.MAX_X_COORDINATE)
+awayGoalTopPole.y = int(specs.GOAL_MAX_Y)
 
 awayGoalBottomPole = Point()
-awayGoalBottomPole.x = (specs.MAX_X_COORDINATE)
-awayGoalBottomPole.y = (specs.GOAL_MIN_Y)
+awayGoalBottomPole.x = int(specs.MAX_X_COORDINATE)
+awayGoalBottomPole.y = int(specs.GOAL_MIN_Y)
 
 
 class GameSnapshotReader:
