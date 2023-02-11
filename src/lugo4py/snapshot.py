@@ -101,7 +101,7 @@ class GameSnapshotReader:
         return server_pb2.homeGoal
     
 
-    def getPlayer(self, side: server_pb2.Team.Side, number: int) -> server_pb2.Player | None:
+    def getPlayer(self, side: server_pb2.Team.Side, number: int) -> server_pb2.Player:
         team = self.getTeam(side)
         if (team == None):
             return None
@@ -138,50 +138,49 @@ class GameSnapshotReader:
     
 
     def makeOrderMoveByDirection(self, direction) -> server_pb2.Order:
-        directionTarget
-        match (direction):
-            case DIRECTION.FORWARD:
-                directionTarget = orientation.EAST
-                if (self.mySide == server_pb2.Team.Side.AWAY):
-                    directionTarget = orientation.WEST
-                
-            case DIRECTION.BACKWARD:
+        directionTarget = None
+        if direction == DIRECTION.FORWARD:
+            directionTarget = orientation.EAST
+            if (self.mySide == server_pb2.Team.Side.AWAY):
                 directionTarget = orientation.WEST
-                if (self.mySide == server_pb2.Team.Side.AWAY):
-                    directionTarget = orientation.EAST
-                
-            case DIRECTION.LEFT:
-                directionTarget = orientation.NORTH
-                if (self.mySide == server_pb2.Team.Side.AWAY):
-                    directionTarget = orientation.SOUTH
-                
-            case DIRECTION.RIGHT:
+            
+        elif direction == DIRECTION.BACKWARD:
+            directionTarget = orientation.WEST
+            if (self.mySide == server_pb2.Team.Side.AWAY):
+                directionTarget = orientation.EAST
+            
+        elif direction == DIRECTION.LEFT:
+            directionTarget = orientation.NORTH
+            if (self.mySide == server_pb2.Team.Side.AWAY):
                 directionTarget = orientation.SOUTH
-                if (self.mySide == server_pb2.Team.Side.AWAY):
-                    directionTarget = orientation.NORTH
-                
-            case DIRECTION.BACKWARD_LEFT:
-                directionTarget = orientation.NORTH_WEST
-                if (self.mySide == server_pb2.Team.Side.AWAY):
-                    directionTarget = orientation.SOUTH_EAST
-                
-            case DIRECTION.BACKWARD_RIGHT:
-                directionTarget = orientation.SOUTH_WEST
-                if (self.mySide == server_pb2.Team.Side.AWAY):
-                    directionTarget = orientation.NORTH_EAST
-                
-            case DIRECTION.FORWARD_LEFT:
-                directionTarget = orientation.NORTH_EAST
-                if (self.mySide == server_pb2.Team.Side.AWAY):
-                    directionTarget = orientation.SOUTH_WEST
-                
-            case DIRECTION.FORWARD_RIGHT:
+            
+        elif direction == DIRECTION.RIGHT:
+            directionTarget = orientation.SOUTH
+            if (self.mySide == server_pb2.Team.Side.AWAY):
+                directionTarget = orientation.NORTH
+            
+        elif direction == DIRECTION.BACKWARD_LEFT:
+            directionTarget = orientation.NORTH_WEST
+            if (self.mySide == server_pb2.Team.Side.AWAY):
                 directionTarget = orientation.SOUTH_EAST
-                if (self.mySide == server_pb2.Team.Side.AWAY):
-                    directionTarget = orientation.NORTH_WEST
-                
-            case default:
-                raise AttributeError('unknown direction {direction}')
+            
+        elif direction == DIRECTION.BACKWARD_RIGHT:
+            directionTarget = orientation.SOUTH_WEST
+            if (self.mySide == server_pb2.Team.Side.AWAY):
+                directionTarget = orientation.NORTH_EAST
+            
+        elif direction == DIRECTION.FORWARD_LEFT:
+            directionTarget = orientation.NORTH_EAST
+            if (self.mySide == server_pb2.Team.Side.AWAY):
+                directionTarget = orientation.SOUTH_WEST
+            
+        elif direction == DIRECTION.FORWARD_RIGHT:
+            directionTarget = orientation.SOUTH_EAST
+            if (self.mySide == server_pb2.Team.Side.AWAY):
+                directionTarget = orientation.NORTH_WEST
+            
+        else:
+            raise AttributeError('unknown direction {direction}')
 
         
         return self.makeOrderMoveFromVector(directionTarget, specs.PLAYER_MAX_SPEED)
