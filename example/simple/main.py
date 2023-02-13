@@ -2,7 +2,9 @@ import sys
 import os
 import asyncio
 
-sys.path.append("../src")
+
+# both src are necessary to account for execution on docker and on project folder
+sys.path.append("../../src")
 sys.path.append("./src")
 
 from lugo4py.loader import EnvVarLoader

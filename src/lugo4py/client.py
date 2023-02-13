@@ -75,7 +75,7 @@ class LugoClient(server_grpc.GameServicer):
                         print(f"[turn #{snapshot.turn}] bot did not return orders")
 
                 elif snapshot.state == server_pb2.GameSnapshot.State.GET_READY:
-                    # await self.getting_ready_handler(snapshot)
+                    await self.getting_ready_handler(snapshot)
                     pass
 
             except Exception as e:
@@ -93,7 +93,7 @@ class LugoClient(server_grpc.GameServicer):
         # thread.start()
         await self._bot_start(bot, join_request)
 
-    async  def _bot_start(self, bot: Bot, join_request: server_pb2.JoinRequest) -> None:
+    async def _bot_start(self, bot: Bot, join_request: server_pb2.JoinRequest) -> None:
         for snapshot in self._client.JoinATeam(join_request):
             try:
                 if snapshot.state == server_pb2.GameSnapshot.State.OVER:
@@ -127,13 +127,11 @@ class LugoClient(server_grpc.GameServicer):
                         print(f"[turn #{snapshot.turn}] bot did not return orders")
 
                 elif snapshot.state == server_pb2.GameSnapshot.State.GET_READY:
-                    # await self.getting_ready_handler(snapshot)
+                    await self.getting_ready_handler(snapshot)
                     pass
 
             except Exception as e:
                 print("internal error processing turn", e)
-
-            
 
     @classmethod
     def new_client(cls, initial_position: Point) -> 'LugoClient':

@@ -11,27 +11,27 @@ PLAYER_STATE = PlayerState()
 
 class Bot(ABC):
     @abstractmethod
-    def onDisputing (orderSet: OrderSet, snapshot: GameSnapshot) -> OrderSet:
+    def onDisputing (self, orderSet: OrderSet, snapshot: GameSnapshot) -> OrderSet:
         pass
 
     @abstractmethod
-    def onDefending (orderSet: OrderSet, snapshot: GameSnapshot) -> OrderSet:
+    def onDefending (self, orderSet: OrderSet, snapshot: GameSnapshot) -> OrderSet:
         pass
 
     @abstractmethod
-    def onHolding (orderSet: OrderSet, snapshot: GameSnapshot) -> OrderSet:
+    def onHolding (self, orderSet: OrderSet, snapshot: GameSnapshot) -> OrderSet:
         pass
 
     @abstractmethod
-    def onSupporting (orderSet: OrderSet, snapshot: GameSnapshot) -> OrderSet:
+    def onSupporting (self, orderSet: OrderSet, snapshot: GameSnapshot) -> OrderSet:
         pass
 
     @abstractmethod
-    def asGoalkeeper (orderSet: OrderSet, snapshot: GameSnapshot, state: PLAYER_STATE) -> OrderSet:
+    def asGoalkeeper (self, orderSet: OrderSet, snapshot: GameSnapshot, state: PLAYER_STATE) -> OrderSet:
         pass
 
     @abstractmethod
-    def gettingReady (snapshot: GameSnapshot):
+    def gettingReady (self, snapshot: GameSnapshot):
         pass
 
 

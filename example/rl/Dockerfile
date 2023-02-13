@@ -5,8 +5,8 @@ COPY requirements.txt /app/requirements.txt
 RUN pip install -r requirements.txt
 
 COPY src /app/src
-COPY example/main.py /app/main.py
-COPY example/my_bot.py /app/my_bot.py
+COPY example/rl/main.py /app/main.py
+COPY example/rl/my_bot.py /app/my_bot.py
 
 CMD ["python", "main.py"]
 
