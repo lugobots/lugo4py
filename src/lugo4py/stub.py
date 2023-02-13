@@ -3,9 +3,9 @@ from abc import ABC, abstractmethod
 
 class PlayerState(object):
     SUPPORTING = 0
-    HOLDING = 1
+    HOLDING_THE_BALL = 1
     DEFENDING = 2
-    DISPUTING = 3 
+    DISPUTING_THE_BALL = 3 
 
 PLAYER_STATE = PlayerState()
 

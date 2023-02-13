@@ -1,15 +1,16 @@
 import sys
+import os
+import asyncio
+
 sys.path.append("../src")
 sys.path.append("./src")
 
 from lugo4py.loader import EnvVarLoader
 from lugo4py.snapshot import GameSnapshotReader
 from lugo4py.mapper import Mapper
-# from lugo4py.client import NewClientFromConfig
+from lugo4py.client import NewClientFromConfig
 
 from my_bot import MyBot
-
-import os
 
 from lugo4py.client import LugoClient
 from lugo4py.protos import physics_pb2
@@ -33,6 +34,7 @@ if __name__ == "__main__":
     if False:
         os.environ['BOT_TEAM'] = 'HOME'
         os.environ['BOT_NUMBER'] = '2'
+        os.environ['BOT_GRPC_URL'] = 'localhost:5000'
     
     # We must load the env vars following the standard defined by the game specs because all bots will receive the
     # arguments in the same format (env vars)
@@ -47,13 +49,11 @@ if __name__ == "__main__":
 
     # Now we can create the bot. We will use a shortcut to create the client from the config, but we could use the
     # client constructor as well
-    ##### lugoClient = NewClientFromConfig(config, initialRegion.getCenter())
+    lugo_client = NewClientFromConfig(config, initialRegion.getCenter())
 
-    ####myBot = MyBot(config.getBotTeamSide(),config.getBotNumber(),initialRegion.getCenter(),map)
+    my_bot = MyBot(config.getBotTeamSide(), config.getBotNumber(), initialRegion.getCenter(), map)
 
-    # lugoClient.playAsBot(myBot).then(() => {
-    #     console.log(`all done`)
-    # }).catch(e => {
-    #     console.error(e)
-    # })
+    asyncio.run(lugo_client.play_as_bot(my_bot))
+    # lugo_client.play_as_bot(my_bot)
+
     print("All good!")

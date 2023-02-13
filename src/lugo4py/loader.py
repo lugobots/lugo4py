@@ -27,8 +27,7 @@ class EnvVarLoader:
             self._grpcUrl = bool(os.environ["BOT_GRPC_INSECURE"])
         
         # defining bot side
-        # TODO
-        # self._botTeamSide = Lugo.Team.Side[process.env.BOT_TEAM.toUpperCase()]
+        self._botTeamSide = server_pb2.Team.Side.HOME if os.environ["BOT_TEAM"].upper() == 'HOME' else server_pb2.Team.Side.AWAY
         self._botNumber = int(os.environ["BOT_NUMBER"])
         if (self._botNumber < 1 or self._botNumber > specs.MAX_PLAYERS):
             raise  SystemError('invalid bot number {self._botNumber}, must be between 1 and {specs.MAX_PLAYERS}')
