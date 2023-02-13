@@ -6,6 +6,7 @@ import threading
 import asyncio
 import datetime
 from typing import Tuple, Callable, Awaitable, Any
+import time
 
 from .protos.physics_pb2 import Point, Vector
 from .protos import server_pb2
@@ -23,7 +24,6 @@ class LugoClient(server_grpc.GameServicer):
 
     def __init__(self, server_add, grpc_insecure, token, teamSide, number, init_position):
         self.callback = Callable[[server_pb2.GameSnapshot], server_pb2.OrderSet]
-        self._initial_position = Point()
         self.serverAdd = server_add
         self.grpc_insecure = grpc_insecure
         self.token = token
@@ -37,7 +37,7 @@ class LugoClient(server_grpc.GameServicer):
         self._client = client
 
     def set_initial_position(self, initial_position: Point):
-        self._initial_position = initial_position
+        self.init_position = initial_position
 
     async def play(self, callback: Callable[[server_pb2.GameSnapshot], server_pb2.OrderSet]):
         self._callback = callback
@@ -49,7 +49,7 @@ class LugoClient(server_grpc.GameServicer):
             token=token,
             team_side=server_pb2.Team.Side.Value(team),
             number=number,
-            init_position=self._initial_position,
+            init_position=self.initial_position,
         )
 
         # thread = threading.Thread(target=self._init, args=(join_request,))
@@ -86,52 +86,59 @@ class LugoClient(server_grpc.GameServicer):
             token=self.token,
             team_side= self.teamSide,
             number=self.number,
-            init_position=self._initial_position,
+            init_position=self.init_position,
         )
 
         # thread = threading.Thread(target=self._bot_start, args=(bot, join_request,))
         # thread.start()
-        await self._bot_start(bot, join_request)
+
+        retries = 3
+        for i in range(retries):
+            try:
+                await self._bot_start(bot, join_request)
+            except Exception as e:
+                print(e)
+                time.sleep(100)
+
+
 
     async def _bot_start(self, bot: Bot, join_request: server_pb2.JoinRequest) -> None:
-        for snapshot in self._client.JoinATeam(join_request):
-            try:
-                if snapshot.state == server_pb2.GameSnapshot.State.OVER:
-                    break 
 
-                elif snapshot.state == server_pb2.GameSnapshot.State.LISTENING:
-                    
-                    orders = self._callback(snapshot)
+            for snapshot in self._client.JoinATeam(join_request):
+                try:
+                    if snapshot.state == server_pb2.GameSnapshot.State.OVER:
+                        break 
+
+                    elif snapshot.state == server_pb2.GameSnapshot.State.LISTENING:
+                        
+                        orders = self._callback(snapshot)
+
+                        playerState = defineState(snapshot, self.number, self.teamSide)
+                        if (self.number == 1):
+                            orders = bot.asGoalkeeper(orders, snapshot, playerState)
+
+                        else:
+                            if playerState == PLAYER_STATE.DISPUTING_THE_BALL:
+                                orders = (bot.onDisputing(orders, snapshot))
+                            if playerState == PLAYER_STATE.DEFENDING:
+                                orders = (bot.onDefending(orders, snapshot))
+                            if playerState == PLAYER_STATE.SUPPORTING:
+                                orders = (bot.onSupporting(orders, snapshot))
+                            if playerState == PLAYER_STATE.HOLDING_THE_BALL:
+                                orders = (bot.onHolding(orders, snapshot))
 
 
+                        if orders:
+                            self._client.SendOrders(orders)
+                            pass
+                        else:
+                            print(f"[turn #{snapshot.turn}] bot did not return orders")
 
-                    playerState = defineState(snapshot, self.number, self.teamSide)
-                    if (self.number == 1):
-                        orders = bot.asGoalkeeper(orders, snapshot, playerState)
+                    elif snapshot.state == server_pb2.GameSnapshot.State.GET_READY:
+                        await self.getting_ready_handler(snapshot)
 
-                    else:
-                        if playerState == PLAYER_STATE.DISPUTING_THE_BALL:
-                            orders = (bot.onDisputing(orders, snapshot))
-                        if playerState == PLAYER_STATE.DEFENDING:
-                            orders = (bot.onDefending(orders, snapshot))
-                        if playerState == PLAYER_STATE.SUPPORTING:
-                            orders = (bot.onSupporting(orders, snapshot))
-                        if playerState == PLAYER_STATE.HOLDING_THE_BALL:
-                            orders = (bot.onHolding(orders, snapshot))
-
-
-                    if orders:
-                        self._client.SendOrders(orders)
-                        pass
-                    else:
-                        print(f"[turn #{snapshot.turn}] bot did not return orders")
-
-                elif snapshot.state == server_pb2.GameSnapshot.State.GET_READY:
-                    await self.getting_ready_handler(snapshot)
-                    pass
-
-            except Exception as e:
-                print("internal error processing turn", e)
+                except Exception as e:
+                    print("internal error processing turn", e)
 
     @classmethod
     def new_client(cls, initial_position: Point) -> 'LugoClient':
