@@ -7,10 +7,13 @@ from lugo4py.stub import Bot, PLAYER_STATE
 from lugo4py.protos import server_pb2 as Lugo 
 from lugo4py.protos.physics_pb2 import Point, Vector 
 
+import traceback
+
 class MyBot(Bot):
 
     def __init__(self, side: Lugo.Team.Side, number: int, initPosition: Point, mapper: Mapper):
         self.number = number
+        self.side = side
         self.mapper = mapper
         self.initPosition = initPosition
         mapper.getRegionFromPoint(initPosition)
@@ -31,10 +34,10 @@ class MyBot(Bot):
         try:
             # the Lugo.GameSnapshot helps us to read the game state
             (reader, me) = self.makeReader(snapshot)
-            ballPosition = reader.getBall().getPosition()
+            ballPosition = reader.getBall().position
 
             ballRegion = self.mapper.getRegionFromPoint(ballPosition)
-            myRegion = self.mapper.getRegionFromPoint(me.getPosition())
+            myRegion = self.mapper.getRegionFromPoint(me.position)
 
             # by default, let's stay on our region
             moveDestination = self.initPosition
@@ -43,21 +46,22 @@ class MyBot(Bot):
             if (self.isNear(ballRegion, myRegion)):
                 moveDestination = ballPosition
 
-            moveOrder = reader.makeOrderMoveMaxSpeed(me.getPosition(), moveDestination)
+            moveOrder = reader.makeOrderMoveMaxSpeed(me.position, moveDestination)
             
             # we can ALWAYS try to catch the ball
             catchOrder = reader.makeOrderCatch()
 
-            orderSet.setOrdersList([moveOrder, catchOrder])
+            orderSet.orders.extend([moveOrder, catchOrder])
             return orderSet
 
-        except Exception:
-            print('did not play this turn')
+        except Exception as e:
+            print(f'did not play this turn due to exception {e}')
+            traceback.print_exc()
 
     def onDefending(self, orderSet: Lugo.OrderSet, snapshot: Lugo.GameSnapshot) -> Lugo.OrderSet: 
         try:
             (reader, me) = self.makeReader(snapshot)
-            ballPosition = snapshot.getBall().getPosition()
+            ballPosition = snapshot.ball.position
             ballRegion = self.mapper.getRegionFromPoint(ballPosition)
             myRegion = self.mapper.getRegionFromPoint(self.initPosition)
 
@@ -65,16 +69,17 @@ class MyBot(Bot):
             if (abs(myRegion.getRow() - ballRegion.getRow()) <= 2 and abs(myRegion.getCol() - ballRegion.getCol()) <= 2):
                 moveDest = ballPosition
 
-            moveOrder = reader.makeOrderMoveMaxSpeed(me.getPosition(), moveDest)
+            moveOrder = reader.makeOrderMoveMaxSpeed(me.position, moveDest)
             catchOrder = reader.makeOrderCatch()
 
             orderSet = Lugo.OrderSet()
-            orderSet.setTurn(snapshot.getTurn())
-            orderSet.setDebugMessage("trying to catch the ball")
-            orderSet.setOrdersList([moveOrder, catchOrder])
+            orderSet.turn = snapshot.turn
+            orderSet.debug_message = "trying to catch the ball"
+            orderSet.orders.extend([moveOrder, catchOrder])
             return orderSet
-        except Exception:
-            print('did not play this turn')
+        except Exception as e:
+            print(f'did not play this turn due to exception {e}')
+            traceback.print_exc()
 
 
     def onHolding(self, orderSet: Lugo.OrderSet, snapshot: Lugo.GameSnapshot) -> Lugo.OrderSet: 
@@ -82,56 +87,59 @@ class MyBot(Bot):
             (reader, me) = self.makeReader(snapshot)
 
             myGoalCenter = self.mapper.getRegionFromPoint(reader.getOpponentGoal().getCenter())
-            currentRegion = self.mapper.getRegionFromPoint(me.getPosition())
+            currentRegion = self.mapper.getRegionFromPoint(me.position)
 
             myOrder = None
             if (abs(currentRegion.getRow() - myGoalCenter.getRow()) <= 1 and abs(currentRegion.getCol() - myGoalCenter.getCol()) <= 1):
-                myOrder = reader.makeOrderKickMaxSpeed(snapshot.getBall(), reader.getOpponentGoal().getCenter())
+                myOrder = reader.makeOrderKickMaxSpeed(snapshot.ball, reader.getOpponentGoal().getCenter())
             else:
-                myOrder = reader.makeOrderMoveMaxSpeed(me.getPosition(), reader.getOpponentGoal().getCenter())
+                myOrder = reader.makeOrderMoveMaxSpeed(me.position, reader.getOpponentGoal().getCenter())
 
             orderSet = Lugo.OrderSet()
-            orderSet.setTurn(snapshot.getTurn())
-            orderSet.setDebugMessage("attack!")
-            orderSet.setOrdersList([myOrder])
+            orderSet.turn = snapshot.turn
+            orderSet.debug_message = "attack!"
+            orderSet.orders.append(myOrder)
             return orderSet
-        except Exception:
-            print('did not play this turn')
+        except Exception as e:
+            print(f'did not play this turn due to exception {e}')
+            traceback.print_exc()
 
     def onSupporting(self, orderSet: Lugo.OrderSet, snapshot: Lugo.GameSnapshot) -> Lugo.OrderSet: 
         try:
             (reader, me) = self.makeReader(snapshot)
-            ballHolderPosition = snapshot.getBall().getPosition()
-            myOrder = reader.makeOrderMoveMaxSpeed(me.getPosition(), ballHolderPosition)
+            ballHolderPosition = snapshot.ball.position
+            myOrder = reader.makeOrderMoveMaxSpeed(me.position, ballHolderPosition)
 
             orderSet = Lugo.OrderSet()
-            orderSet.setTurn(snapshot.getTurn())
-            orderSet.setDebugMessage("supporting")
-            orderSet.setOrdersList([myOrder])
+            orderSet.turn = snapshot.turn
+            orderSet.debug_message = "supporting"
+            orderSet.orders.append(myOrder)
             return orderSet
-        except Exception:
-            print('did not play this turn')
+        except Exception as e:
+            print(f'did not play this turn due to exception {e}')
+            traceback.print_exc()
 
     def asGoalkeeper(self, orderSet: Lugo.OrderSet, snapshot: Lugo.GameSnapshot, state) -> Lugo.OrderSet:
         try:
             (reader, me) = self.makeReader(snapshot)
-            position = snapshot.getBall().getPosition()
+            position = snapshot.ball.position
             if (state != PLAYER_STATE.DISPUTING_THE_BALL):
                 position = reader.getMyGoal().getCenter()
 
-            myOrder = reader.makeOrderMoveMaxSpeed(me.getPosition(), position)
+            myOrder = reader.makeOrderMoveMaxSpeed(me.position, position)
 
             orderSet = Lugo.OrderSet()
-            orderSet.setTurn(snapshot.getTurn())
-            orderSet.setDebugMessage("supporting")
-            orderSet.setOrdersList([myOrder, reader.makeOrderCatch()])
+            orderSet.turn = snapshot.turn
+            orderSet.debug_message = "supporting"
+            orderSet.orders.extend([myOrder, reader.makeOrderCatch()])
             return orderSet
-        except Exception:
-            print('did not play this turn')
+        except Exception as e:
+            print(f'did not play this turn due to exception {e}')
+            traceback.print_exc()
 
 
-    def gettingReady(self, snapshot: Lugo.GameSnapshot):
-        pass
+    async def gettingReady(self, snapshot: Lugo.GameSnapshot):
+        print('getting ready')
 
 PLAYER_POSITIONS = {
     1:  {'Col': 0, 'Row': 0},

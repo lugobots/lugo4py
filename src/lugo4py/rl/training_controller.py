@@ -1,5 +1,6 @@
 import asyncio
 from remote_control import RemoteControl
+# from ..protos.remote_pb2_grpc import RemoteStub
 from .interfaces import TrainingController, BotTrainer, TrainingFunction
 from ..protos.server_pb2 import GameSnapshot, OrderSet
 

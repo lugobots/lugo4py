@@ -51,7 +51,7 @@ awayGoalBottomPole.y = int(specs.GOAL_MIN_Y)
 
 
 class GameSnapshotReader:
-    def constructor(self, snapshot: server_pb2.GameSnapshot, mySide: server_pb2.Team.Side):
+    def __init__(self, snapshot: server_pb2.GameSnapshot, mySide: server_pb2.Team.Side):
         self.snapshot = snapshot
         self.mySide = mySide
     
@@ -65,16 +65,16 @@ class GameSnapshotReader:
     
 
     def getTeam(self, side) -> server_pb2.Team:
-        if (side == server_pb2.Side.HOME):
-            return self.snapshot.HomeTeam
+        if (side == server_pb2.Team.Side.HOME):
+            return self.snapshot.home_team
         
-        return self.snapshot.awayTeam
+        return self.snapshot.away_team
     
 
     def isBallHolder(self, player: server_pb2.Player) -> bool:
-        ball = self.snapshot.Ball
+        ball = self.snapshot.ball
 
-        return ball.Holder != None and ball.Holder.TeamSide == player.TeamSide and ball.Holder.Number == player.Number
+        return ball.holder != None and ball.holder.team_side == player.team_side and ball.holder.number == player.number
     
 
     def getOpponentSide(self) -> server_pb2.Team.Side:
@@ -86,19 +86,19 @@ class GameSnapshotReader:
 
     def getMyGoal(self) ->  Goal:
         if (self.mySide == server_pb2.Team.Side.HOME):
-            return server_pb2.homeGoal
+            return homeGoal
         
-        return server_pb2.awayGoal
+        return awayGoal
     
     def getBall(self) ->  server_pb2.Ball:
-        return self.snapshot.Ball
+        return self.snapshot.ball
     
 
     def getOpponentGoal(self) ->  Goal:
         if (self.mySide == server_pb2.Team.Side.HOME):
-            return server_pb2.awayGoal
+            return awayGoal
         
-        return server_pb2.homeGoal
+        return homeGoal
     
 
     def getPlayer(self, side: server_pb2.Team.Side, number: int) -> server_pb2.Player:
@@ -106,8 +106,8 @@ class GameSnapshotReader:
         if (team == None):
             return None
         
-        for player in team.getPlayersList():
-            if (player.getNumber() == number):
+        for player in team.players:
+            if (player.number == number):
                 return player
         return None
     
@@ -128,13 +128,12 @@ class GameSnapshotReader:
     
 
     def makeOrderMoveFromVector(self, direction: Vector, speed: int) -> server_pb2.Order:
-        velocity = server_pb2.Velocity()
-        velocity.setDirection(direction)
-        velocity.setSpeed(speed)
+        order = server_pb2.Order()
 
-        moveOrder = server_pb2.Move()
-        moveOrder.setVelocity(velocity)
-        return server_pb2.Order().setMove(moveOrder)
+        order.move.velocity.direction.x = direction.x
+        order.move.velocity.direction.y = direction.y
+        order.move.velocity.speed = speed
+        return order
     
 
     def makeOrderMoveByDirection(self, direction) -> server_pb2.Order:
@@ -195,11 +194,11 @@ class GameSnapshotReader:
             direction = geo.normalize(direction)
         
         velocity = server_pb2.Velocity()
-        velocity.Direction = direction
-        velocity.Speed = speed
+        velocity.direction = direction
+        velocity.speed = speed
 
         jump = server_pb2.Order.Jump()
-        jump.setVelocity(velocity)
+        jump.velocity = velocity
 
         order = server_pb2.Order()
         order.Jump = jump 
@@ -226,10 +225,10 @@ class GameSnapshotReader:
     
 
     def makeOrderCatch(self) -> server_pb2.Order:
-        return server_pb2.Order.Catch()
+        order = server_pb2.Order()
+        order.catch.SetInParent()
+        return order
     
-
-
 
 awayGoal = Goal(
     server_pb2.Team.Side.AWAY,
@@ -246,7 +245,7 @@ homeGoal = Goal(
 
 
 def defineState(snapshot: server_pb2.GameSnapshot, playerNumber: int, side: server_pb2.Team.Side) -> PLAYER_STATE:
-    if (not snapshot or not snapshot.getBall()):
+    if (not snapshot or not snapshot.ball):
         raise AttributeError('invalid snapshot state - cannot define player state')
     
 
@@ -256,13 +255,13 @@ def defineState(snapshot: server_pb2.GameSnapshot, playerNumber: int, side: serv
         raise AttributeError('could not find the bot in the snapshot - cannot define player state')
     
 
-    ballHolder = snapshot.getBall().getHolder()
+    ballHolder = snapshot.ball.holder
     
     if (not ballHolder):
         return PLAYER_STATE.DISPUTING_THE_BALL
 
-    elif (ballHolder.getTeamSide() == side):
-        if (ballHolder.getNumber() == playerNumber):
+    elif (ballHolder.team_side == side):
+        if (ballHolder.number == playerNumber):
             return PLAYER_STATE.HOLDING_THE_BALL
         
         return PLAYER_STATE.SUPPORTING

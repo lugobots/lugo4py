@@ -31,6 +31,8 @@ PLAYER_POSITIONS = {
     11: {'Col': 4, 'Row': 2},
 }
 
+
+
 if __name__ == "__main__":
     # Set necessary env variables for testing
     if False:
@@ -55,6 +57,7 @@ if __name__ == "__main__":
 
     my_bot = MyBot(config.getBotTeamSide(), config.getBotNumber(), initialRegion.getCenter(), map)
 
+    print("Bot will start running")
     asyncio.run(lugo_client.play_as_bot(my_bot))
     # lugo_client.play_as_bot(my_bot)
 
