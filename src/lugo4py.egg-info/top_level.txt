@@ -1,1 +1,1 @@
-lugoclient
+lugo4py
