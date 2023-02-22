@@ -130,7 +130,7 @@ class MyBot(Bot):
 
             orderSet = Lugo.OrderSet()
             orderSet.turn = snapshot.turn
-            orderSet.debug_message = "supporting"
+            orderSet.debug_message = "defending the goal"
             orderSet.orders.extend([myOrder, reader.makeOrderCatch()])
             return orderSet
         except Exception as e:
