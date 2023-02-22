@@ -1,0 +1,7 @@
+setup.cfg
+setup.py
+lugo4py.egg-info/PKG-INFO
+lugo4py.egg-info/SOURCES.txt
+lugo4py.egg-info/dependency_links.txt
+lugo4py.egg-info/requires.txt
+lugo4py.egg-info/top_level.txt
