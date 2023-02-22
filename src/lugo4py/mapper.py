@@ -26,7 +26,7 @@ MaxRows = 100
 
 
 def mirrorCoordsToAway(center):
-    mirrored = physics_pb2.Point
+    mirrored = physics_pb2.Point()
     mirrored.x = (specs.MAX_X_COORDINATE - center.x)
     mirrored.y = (specs.MAX_Y_COORDINATE - center.y)
     return mirrored

@@ -95,6 +95,7 @@ class LugoClient(server_grpc.GameServicer):
     async def play_as_bot(self, bot: Bot):
         join_request = server_pb2.JoinRequest(token = self.token, team_side = self.teamSide, number = self.number, init_position = self.init_position)
         # join_request = server_pb2.JoinRequest({'token':self.token,  'team_side' : self.teamSide, 'number' : self.number, 'init_position': self.init_position})
+        print(join_request)
 
         retries = 3
         for i in range(retries):
@@ -102,6 +103,7 @@ class LugoClient(server_grpc.GameServicer):
                 await self._bot_start(bot, join_request)
             except Exception as e:
                 print(e)
+                traceback.print_exc()
                 time.sleep(1)
 
 

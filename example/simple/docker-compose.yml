@@ -131,6 +131,7 @@ services:
       - BOT_NUMBER=1
       - BOT_TEAM=away
       - BOT_GRPC_URL=game_server:5000
+      - BOT_GRPC_INSECURE=true
   player_away_02:
     image: lugobots/the-dummies-go:latest
     # image: pybot:latest
@@ -141,6 +142,7 @@ services:
       - BOT_NUMBER=2
       - BOT_TEAM=away
       - BOT_GRPC_URL=game_server:5000
+      - BOT_GRPC_INSECURE=true
   player_away_03:
     image: lugobots/the-dummies-go:latest
     # image: pybot:latest
@@ -151,6 +153,7 @@ services:
       - BOT_NUMBER=3
       - BOT_TEAM=away
       - BOT_GRPC_URL=game_server:5000
+      - BOT_GRPC_INSECURE=true
   player_away_04:
     image: lugobots/the-dummies-go:latest
     # image: pybot:latest
@@ -161,6 +164,7 @@ services:
       - BOT_NUMBER=4
       - BOT_TEAM=away
       - BOT_GRPC_URL=game_server:5000
+      - BOT_GRPC_INSECURE=true
   player_away_05:
     image: lugobots/the-dummies-go:latest
     # image: pybot:latest
@@ -171,6 +175,7 @@ services:
       - BOT_NUMBER=5
       - BOT_TEAM=away
       - BOT_GRPC_URL=game_server:5000
+      - BOT_GRPC_INSECURE=true
   player_away_06:
     image: lugobots/the-dummies-go:latest
     # image: pybot:latest
@@ -181,6 +186,7 @@ services:
       - BOT_NUMBER=6
       - BOT_TEAM=away
       - BOT_GRPC_URL=game_server:5000
+      - BOT_GRPC_INSECURE=true
   player_away_07:
     image: lugobots/the-dummies-go:latest
     # image: pybot:latest
@@ -191,6 +197,7 @@ services:
       - BOT_NUMBER=7
       - BOT_TEAM=away
       - BOT_GRPC_URL=game_server:5000
+      - BOT_GRPC_INSECURE=true
   player_away_08:
     image: lugobots/the-dummies-go:latest
     # image: pybot:latest
@@ -201,6 +208,7 @@ services:
       - BOT_NUMBER=8
       - BOT_TEAM=away
       - BOT_GRPC_URL=game_server:5000
+      - BOT_GRPC_INSECURE=true
   player_away_09:
     image: lugobots/the-dummies-go:latest
     # image: pybot:latest
@@ -211,6 +219,7 @@ services:
       - BOT_NUMBER=9
       - BOT_TEAM=away
       - BOT_GRPC_URL=game_server:5000
+      - BOT_GRPC_INSECURE=true
   player_away_10:
     image: lugobots/the-dummies-go:latest
     # image: pybot:latest
@@ -221,6 +230,7 @@ services:
       - BOT_NUMBER=10
       - BOT_TEAM=away
       - BOT_GRPC_URL=game_server:5000
+      - BOT_GRPC_INSECURE=true
   player_away_11:
     image: lugobots/the-dummies-go:latest
     # image: pybot:latest
@@ -231,4 +241,4 @@ services:
       - BOT_NUMBER=11
       - BOT_TEAM=away
       - BOT_GRPC_URL=game_server:5000
-
+      - BOT_GRPC_INSECURE=true
