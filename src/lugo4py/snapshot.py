@@ -251,16 +251,15 @@ def defineState(snapshot: server_pb2.GameSnapshot, playerNumber: int, side: serv
 
     reader = GameSnapshotReader(snapshot, side)
     me = reader.getPlayer(side, playerNumber)
-    if (not me):
+    if (me is None):
         raise AttributeError('could not find the bot in the snapshot - cannot define player state')
-    
 
     ballHolder = snapshot.ball.holder
     
-    if (not ballHolder):
+    if ballHolder.number == 0:
         return PLAYER_STATE.DISPUTING_THE_BALL
 
-    elif (ballHolder.team_side == side):
+    if (ballHolder.team_side == side):
         if (ballHolder.number == playerNumber):
             return PLAYER_STATE.HOLDING_THE_BALL
         

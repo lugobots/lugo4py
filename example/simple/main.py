@@ -31,8 +31,6 @@ PLAYER_POSITIONS = {
     11: {'Col': 4, 'Row': 2},
 }
 
-
-
 if __name__ == "__main__":
     # Set necessary env variables for testing
     if False:

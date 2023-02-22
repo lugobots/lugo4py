@@ -127,13 +127,13 @@ class LugoClient(server_grpc.GameServicer):
                         if playerState == PLAYER_STATE.DISPUTING_THE_BALL:
                             # print(f"[turn #{snapshot.turn}] will call disputing")
                             orders = bot.onDisputing(orders, snapshot)
-                        if playerState == PLAYER_STATE.DEFENDING:
+                        elif playerState == PLAYER_STATE.DEFENDING:
                             # print(f"[turn #{snapshot.turn}] will call defending")
                             orders = bot.onDefending(orders, snapshot)
-                        if playerState == PLAYER_STATE.SUPPORTING:
+                        elif playerState == PLAYER_STATE.SUPPORTING:
                             # print(f"[turn #{snapshot.turn}] will call supporting")
                             orders = bot.onSupporting(orders, snapshot)
-                        if playerState == PLAYER_STATE.HOLDING_THE_BALL:
+                        elif playerState == PLAYER_STATE.HOLDING_THE_BALL:
                             # print(f"[turn #{snapshot.turn}] will call holding")
                             orders = bot.onHolding(orders, snapshot)
 
