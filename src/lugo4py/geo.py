@@ -5,7 +5,7 @@ from math import hypot
 def NewVector(fromPoint : physics_pb2.Point, toPoint : physics_pb2.Point) :
     v = physics_pb2.Vector()
     v.x = toPoint.x - fromPoint.x
-    v.x = toPoint.y - fromPoint.y
+    v.y = toPoint.y - fromPoint.y
     if isInValidateVector(v):
         raise RuntimeError("A vector cannot have zero length")
     return v
@@ -19,7 +19,7 @@ def getLength(v: physics_pb2.Vector):
 
 def getScaledVector(v: physics_pb2.Vector, scale : float):
     if (scale <= 0):
-        raise RuntimeError("Cector can not have zero length")
+        raise RuntimeError("Vector cannot have zero length")
     v2 = physics_pb2.Vector()
     v2.x = v.x * scale
     v2.y = v.y * scale
