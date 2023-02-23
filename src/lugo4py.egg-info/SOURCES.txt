@@ -16,6 +16,17 @@ src/lugo4py.egg-info/PKG-INFO
 src/lugo4py.egg-info/SOURCES.txt
 src/lugo4py.egg-info/dependency_links.txt
 src/lugo4py.egg-info/top_level.txt
+src/lugo4py/protos/__init__.py
+src/lugo4py/protos/broadcast_pb2.py
+src/lugo4py/protos/broadcast_pb2_grpc.py
+src/lugo4py/protos/health_pb2.py
+src/lugo4py/protos/health_pb2_grpc.py
+src/lugo4py/protos/physics_pb2.py
+src/lugo4py/protos/physics_pb2_grpc.py
+src/lugo4py/protos/remote_pb2.py
+src/lugo4py/protos/remote_pb2_grpc.py
+src/lugo4py/protos/server_pb2.py
+src/lugo4py/protos/server_pb2_grpc.py
 src/lugo4py/rl/__init__.py
 src/lugo4py/rl/gym.py
 src/lugo4py/rl/interfaces.py
