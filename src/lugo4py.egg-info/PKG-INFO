@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: lugo4py
-Version: 0.0.1a1
+Version: 0.0.2
 Summary: Lugo4Py is a Python3 implementation of a client player for Lugo game.
 Home-page: https://lugobots.dev/
 Author: "Rubens Silva, Lucas Coelho"
