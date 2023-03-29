@@ -22,18 +22,14 @@ async def connect(self, grpcAddress: str) -> None:
         print("ERROR: ", e)
         raise e
 
-    async def pauseResume(self):
-        pauseReq = PauseResumeRequest()
-        # return new Promise<void>((resolve, reject) => {
-        #     const resp = this.client.pauseOrResume(pauseReq, (err) => {
-        #         if (err) {
-        #             console.log(`ERROR: `, err)
-        #             reject(err)
-        #             return
-        #         }
-        #         resolve()
-        #     })
-        # })
+
+async def pauseResume(self):
+    pause_req = remote.PauseResumeRequest()
+    try:
+        self.client.pause_or_resume(pause_req)
+    except grpc.RpcError as e:
+        print(f"ERROR: {e}")
+        raise
 
     async def resumeListening(self):
         req = ResumeListeningRequest()
