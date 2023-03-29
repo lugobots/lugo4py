@@ -77,14 +77,17 @@ class RemoteControl(object):
 
     async def setTurn(self, turnNumber):
         gameProp = GameProperties()
-        # gameProp.setTurn(turnNumber)
-        # return new Promise<GameSnapshot>((resolve, reject) => {
-        #     const resp = this.client.setGameProperties(gameProp, (err, commandResponse) => {
-        #         if (err) {
-        #             console.log(`ERROR: `, err)
-        #             reject(err)
-        #             return
-        #         }
-        #         resolve(commandResponse.getGameSnapshot())
-        #     })
-        # })
+        gameProp.setTurn(turnNumber)
+
+        loop = asyncio.get_event_loop()
+        future = loop.create_future()
+
+        def callback(err, commandResponse):
+            if err:
+                print(f"ERROR: {err}")
+                future.set_exception(err)
+            else:
+                future.set_result(commandResponse.getGameSnapshot())
+
+        resp = await loop.run_in_executor(None, client.setGameProperties, gameProp, callback)
+        return await future
