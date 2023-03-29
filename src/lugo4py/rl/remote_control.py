@@ -45,19 +45,15 @@ class RemoteControl(object):
         raise e
 
     async def setBallProps(self, position: Point, velocity: Velocity):
-        ballPropReq = BallProperties()
-        ballPropReq.setVelocity(velocity)
-        ballPropReq.setPosition(position)
-        # return new Promise<GameSnapshot>((resolve, reject) => {
-        #     const resp = this.client.setBallProperties(ballPropReq, (err, commandResponse) => {
-        #         if (err) {
-        #             console.log(`ERROR: ballPropReq`, ballPropReq, err)
-        #             reject(err)
-        #             return
-        #         }
-        #         resolve(commandResponse.getGameSnapshot())
-        #     })
-        # })
+        ball_prop_req = BallProperties()
+        ball_prop_req.velocity.CopyFrom(velocity)
+        ball_prop_req.position.CopyFrom(position)
+        try:
+            response = await self.stub.SetBallProperties(ball_prop_req)
+            return response.gameSnapshot
+        except grpc.RpcError as e:
+            print(f"ERROR: ball_prop_req {ball_prop_req} {e}")
+        raise e from None
 
     async def setPlayerProps(teamSide: Team.Side, playerNumber: number, newPosition: Point, newVelocity: Velocity):
         playerProperties = PlayerProperties()
