@@ -1,30 +1,26 @@
+from datetime import datetime, timedelta
 import grpc
 from ..protos import remote_pb2_grpc
-from ..protos.remote_pb2 import  PauseResumeRequest, BallProperties, NextTurnRequest, PlayerProperties, GameProperties, ResumeListeningRequest
+from ..protos.remote_pb2 import PauseResumeRequest, BallProperties, NextTurnRequest, PlayerProperties, GameProperties, ResumeListeningRequest
 from ..protos.physics_pb2 import Point, Velocity
 from ..protos.physics_pb2 import GameSnapshot, Team
 
 
 class RemoteControl(object):
-    
+
     def __init__(self):
         self.client = None
 
-    async def connect(grpcAddress: str):
-        pass
-        # await new Promise<void>((resolve, reject) => {
-        #     this.client = new remote.RemoteClient(grpcAddress, grpc.credentials.createInsecure())
-        #     const deadline = new Date();
-        #     deadline.setSeconds(deadline.getSeconds() + 5);
-        #     this.client.waitForReady(deadline, (err) => {
-        #         if (err) {
-        #             console.log(`ERROR: `, err)
-        #             reject(err)
-        #             return
-        #         }
-        #         resolve()
-        #     })
-        # })
+
+async def connect(self, grpcAddress: str) -> None:
+    try:
+        self.client = remote.RemoteClient(
+            grpcAddress, grpc.credentials.create_insecure())
+        deadline = datetime.now() + timedelta(seconds=5)
+        await self.client.wait_for_ready(deadline=deadline)
+    except grpc.RpcError as e:
+        print("ERROR: ", e)
+        raise e
 
     async def pauseResume(self):
         pauseReq = PauseResumeRequest()
