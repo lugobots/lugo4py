@@ -38,16 +38,11 @@ class RemoteControl(object):
 
     async def nextTurn(self):
         nextTurnReq = NextTurnRequest()
-        # return new Promise<void>((resolve, reject) => {
-        #     const resp = this.client.nextTurn(nextTurnReq, (err) => {
-        #         if (err) {
-        #             console.log(`ERROR: `, err)
-        #             reject(err)
-        #             return
-        #         }
-        #         resolve()
-        #     })
-        # })
+        try:
+            await self.stub.nextTurn(nextTurnReq)
+        except grpc.RpcError as e:
+            print(f"Error: {e.code()}: {e.details()}")
+        raise e
 
     async def setBallProps(self, position: Point, velocity: Velocity):
         ballPropReq = BallProperties()
