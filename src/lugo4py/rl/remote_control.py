@@ -55,22 +55,25 @@ class RemoteControl(object):
             print(f"ERROR: ball_prop_req {ball_prop_req} {e}")
         raise e from None
 
-    async def setPlayerProps(teamSide: Team.Side, playerNumber: number, newPosition: Point, newVelocity: Velocity):
+    async def setPlayerProps(teamSide, playerNumber, newPosition, newVelocity):
         playerProperties = PlayerProperties()
         playerProperties.setVelocity(newVelocity)
         playerProperties.setPosition(newPosition)
         playerProperties.setSide(teamSide)
         playerProperties.setNumber(playerNumber)
-        # return new Promise<GameSnapshot>((resolve, reject) => {
-        #     const resp = this.client.setPlayerProperties(playerProperties, (err, commandResponse) => {
-        #         if (err) {
-        #             console.log(`ERROR: (playerProperties)`, err)
-        #             reject(err)
-        #             return
-        #         }
-        #         resolve(commandResponse.getGameSnapshot())
-        #     })
-        # })
+
+        loop = asyncio.get_event_loop()
+        future = loop.create_future()
+
+        def callback(err, commandResponse):
+            if err:
+                print(f"ERROR: (playerProperties) {err}")
+                future.set_exception(err)
+            else:
+                future.set_result(commandResponse.getGameSnapshot())
+
+        resp = await loop.run_in_executor(None, client.setPlayerProperties, playerProperties, callback)
+        return await future
 
     async def setTurn(self, turnNumber):
         gameProp = GameProperties()
