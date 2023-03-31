@@ -30,85 +30,34 @@ class RemoteControl(object):
 
     async def pauseResume(self):
         pauseReq = PauseResumeRequest()
-        # return new Promise<void>((resolve, reject) => {
-        #     const resp = this.client.pauseOrResume(pauseReq, (err) => {
-        #         if (err) {
-        #             console.log(`ERROR: `, err)
-        #             reject(err)
-        #             return
-        #         }
-        #         resolve()
-        #     })
-        # })
+        return asyncio.get_running_loop().run_in_executor(None, lambda: self.client.pauseOrResume(pauseReq))
 
     async def resumeListening(self):
         req = ResumeListeningRequest()
-        # return new Promise<void>((resolve, reject) => {
-        #     const resp = this.client.resumeListeningPhase(req, (err) => {
-        #         if (err) {
-        #             console.log(`ERROR: `, err)
-        #             reject(err)
-        #             return
-        #         }
-        #         resolve()
-        #     })
-        # })
+        return await asyncio.to_thread(self.client.resumeListeningPhase, req)
 
     async def nextTurn(self):
         nextTurnReq = NextTurnRequest()
-        # return new Promise<void>((resolve, reject) => {
-        #     const resp = this.client.nextTurn(nextTurnReq, (err) => {
-        #         if (err) {
-        #             console.log(`ERROR: `, err)
-        #             reject(err)
-        #             return
-        #         }
-        #         resolve()
-        #     })
-        # })
+        return await asyncio.get_event_loop().run_in_executor(None, lambda: self.client.nextTurn(nextTurnReq))
 
     async def setBallProps(self, position: Point, velocity: Velocity):
-        ballPropReq = BallProperties()
-        ballPropReq.setVelocity(velocity)
-        ballPropReq.setPosition(position)
-        # return new Promise<GameSnapshot>((resolve, reject) => {
-        #     const resp = this.client.setBallProperties(ballPropReq, (err, commandResponse) => {
-        #         if (err) {
-        #             console.log(`ERROR: ballPropReq`, ballPropReq, err)
-        #             reject(err)
-        #             return
-        #         }
-        #         resolve(commandResponse.getGameSnapshot())
-        #     })
-        # })
+        ball_properties = BallProperties()
+        ball_properties.velocity.CopyFrom(velocity)
+        ball_properties.position.CopyFrom(position)
+        response = await self.client.SetBallProperties(ball_properties)
+        return response.GameSnapshot
 
-    async def setPlayerProps(teamSide: Team.Side, playerNumber: number, newPosition: Point, newVelocity: Velocity):
-        playerProperties = PlayerProperties()
-        playerProperties.setVelocity(newVelocity)
-        playerProperties.setPosition(newPosition)
-        playerProperties.setSide(teamSide)
-        playerProperties.setNumber(playerNumber)
-        # return new Promise<GameSnapshot>((resolve, reject) => {
-        #     const resp = this.client.setPlayerProperties(playerProperties, (err, commandResponse) => {
-        #         if (err) {
-        #             console.log(`ERROR: (playerProperties)`, err)
-        #             reject(err)
-        #             return
-        #         }
-        #         resolve(commandResponse.getGameSnapshot())
-        #     })
-        # })
+    async def setPlayerProps(self, teamSide: Team.Side, playerNumber: int, newPosition: Point, newVelocity: Velocity) -> GameSnapshot:
+        player_properties = PlayerProperties()
+        player_properties.velocity.CopyFrom(newVelocity)
+        player_properties.position.CopyFrom(newPosition)
+        player_properties.side = teamSide
+        player_properties.number = playerNumber
+        response = await self.client.SetPlayerProperties(player_properties)
+        return response.GameSnapshot
 
     async def setTurn(self, turnNumber):
         gameProp = GameProperties()
-        # gameProp.setTurn(turnNumber)
-        # return new Promise<GameSnapshot>((resolve, reject) => {
-        #     const resp = this.client.setGameProperties(gameProp, (err, commandResponse) => {
-        #         if (err) {
-        #             console.log(`ERROR: `, err)
-        #             reject(err)
-        #             return
-        #         }
-        #         resolve(commandResponse.getGameSnapshot())
-        #     })
-        # })
+        gameProp.setTurn(turnNumber)
+        response = await self.client.setGameProperties(gameProp)
+        return response.game_snapshot
