@@ -1,10 +1,10 @@
 import asyncio
 from datetime import datetime, timedelta
 import grpc
-from ..protos import remote_pb2_grpc
 from ..protos.remote_pb2 import PauseResumeRequest, BallProperties, NextTurnRequest, PlayerProperties, GameProperties, ResumeListeningRequest
 from ..protos.physics_pb2 import Point, Velocity
 from ..protos.physics_pb2 import GameSnapshot, Team
+from ..protos import remote_pb2_grpc
 
 
 class RemoteControl(object):
@@ -12,21 +12,21 @@ class RemoteControl(object):
     def __init__(self):
         self.client = None
 
-    async def connect(grpcAddress: str):
-        pass
-        # await new Promise<void>((resolve, reject) => {
-        #     this.client = new remote.RemoteClient(grpcAddress, grpc.credentials.createInsecure())
-        #     const deadline = new Date();
-        #     deadline.setSeconds(deadline.getSeconds() + 5);
-        #     this.client.waitForReady(deadline, (err) => {
-        #         if (err) {
-        #             console.log(`ERROR: `, err)
-        #             reject(err)
-        #             return
-        #         }
-        #         resolve()
-        #     })
-        # })
+    async def connect(self, grpcAddress: str):
+        loop = asyncio.get_event_loop()
+        self.client = remote_pb2_grpc.RemoteClient(
+            grpcAddress, grpc.credentials.create_insecure())
+        deadline = datetime.now() + timedelta(seconds=5)
+
+        def callback(err):
+            if err:
+                print(f"ERROR: {err}")
+                loop.stop()
+            else:
+                loop.stop()
+
+        self.client.wait_for_ready(deadline, callback)
+        loop.run_forever()
 
     async def pauseResume(self):
         pauseReq = PauseResumeRequest()
