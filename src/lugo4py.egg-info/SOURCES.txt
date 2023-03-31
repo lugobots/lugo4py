@@ -32,4 +32,4 @@ src/lugo4py/rl/gym.py
 src/lugo4py/rl/interfaces.py
 src/lugo4py/rl/remote_control.py
 src/lugo4py/rl/training_controller.py
-src/lugo4py/rl/zombie.py
+src/lugo4py/rl/helper_bots.py
