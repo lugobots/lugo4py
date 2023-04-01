@@ -1,5 +1,5 @@
 from training_controller import TrainingCrl, delay
-from .helper_bots import newZombiePlayer
+from .helper_bots import newZombiePlayer, newChaserHelperPlayer, newZombieHelperPlayer
 from .remote_control import RemoteControl
 from .interfaces import BotTrainer, TrainingFunction
 from ..client import LugoClient
@@ -20,7 +20,7 @@ class Gym(object):
         hasStarted = True
         await self.trainingCrl.gameTurnHandler(orderSet, snapshot)
         if self.gameServerAddress:
-            await completeWithZombies(self.gameServerAddress)
+            await self.completeWithZombies(self.gameServerAddress)
         asyncio.get_running_loop().call_later(
             1, lambda: self.remoteControl.resumeListening() if not hasStarted else None)
 
@@ -34,38 +34,33 @@ class Gym(object):
         self.gameServerAddress = gameServerAddress
         return self
 
+    async def completeWithZombies(gameServerAddress):
+        for i in range(1, 11):
+            await newZombiePlayer(Team.Side.HOME, i, gameServerAddress)
+            await delay(50)
+            await newZombiePlayer(Team.Side.AWAY, i, gameServerAddress)
+            await delay(50)
 
-async def completeWithZombies(gameServerAddress):
-    for i in range(1, 11):
-        await newZombiePlayer(Team.Side.HOME, i, gameServerAddress)
-        await delay(50)
-        await newZombiePlayer(Team.Side.AWAY, i, gameServerAddress)
-        await delay(50)
+    def withRandomMotionPlayers(self, gameServerAddress):
+        self.gameServerAddress = gameServerAddress
 
-#    withChasersPlayers(gameServerAddress) {
-#        this.gameServerAddress = gameServerAddress
-#        this.helperPlayers = async (gameServerAddress) => {
-#            for (let i = 1; i <= 11; i++) {
-#                await newChaserHelperPlayer(Team.Side.HOME, i, gameServerAddress)
-#                await delay(50)
-#                await newChaserHelperPlayer(Team.Side.AWAY, i, gameServerAddress)
-#                await delay(50)
-#            }
-#        }
-#        return this
-#    }
+        async def helperPlayers(gameServerAddress):
+            for i in range(1, 11):
+                await newChaserHelperPlayer(Team.Side.HOME, i, gameServerAddress)
+                await delay(50)
+                await newChaserHelperPlayer(Team.Side.AWAY, i, gameServerAddress)
+                await delay(50)
+        self.helperPlayers = helperPlayers
+        return self
 
+    def withRandomMotionPlayers(self, gameServerAddress, turnsToChangeDirection=60):
+        self.gameServerAddress = gameServerAddress
 
-#    withRandomMotionPlayers(gameServerAddress, turnsToChangeDirection = 60) {
-#        this.gameServerAddress = gameServerAddress
-#        this.helperPlayers = async (gameServerAddress) => {
-#            for (let i = 1; i <= 11; i++) {
-#                await newRandomMotionHelperPlayer(Team.Side.HOME, i, gameServerAddress, turnsToChangeDirection)
-#                await delay(50)
-#                await newRandomMotionHelperPlayer(Team.Side.AWAY, i, gameServerAddress, turnsToChangeDirection)
-#               await delay(50)
-#            }
-#        }
-#
-#       return this
-#    }
+        async def helperPlayers(gameServerAddress):
+            for i in range(1, 11):
+                await newZombieHelperPlayer(Team.Side.HOME, i, gameServerAddress, turnsToChangeDirection)
+                await delay(50)
+                await newZombieHelperPlayer(Team.Side.AWAY, i, gameServerAddress, turnsToChangeDirection)
+                await delay(50)
+        self.helperPlayers = helperPlayers
+        return self
