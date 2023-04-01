@@ -41,3 +41,31 @@ async def completeWithZombies(gameServerAddress):
         await delay(50)
         await newZombiePlayer(Team.Side.AWAY, i, gameServerAddress)
         await delay(50)
+
+#    withChasersPlayers(gameServerAddress) {
+#        this.gameServerAddress = gameServerAddress
+#        this.helperPlayers = async (gameServerAddress) => {
+#            for (let i = 1; i <= 11; i++) {
+#                await newChaserHelperPlayer(Team.Side.HOME, i, gameServerAddress)
+#                await delay(50)
+#                await newChaserHelperPlayer(Team.Side.AWAY, i, gameServerAddress)
+#                await delay(50)
+#            }
+#        }
+#        return this
+#    }
+
+
+#    withRandomMotionPlayers(gameServerAddress, turnsToChangeDirection = 60) {
+#        this.gameServerAddress = gameServerAddress
+#        this.helperPlayers = async (gameServerAddress) => {
+#            for (let i = 1; i <= 11; i++) {
+#                await newRandomMotionHelperPlayer(Team.Side.HOME, i, gameServerAddress, turnsToChangeDirection)
+#                await delay(50)
+#                await newRandomMotionHelperPlayer(Team.Side.AWAY, i, gameServerAddress, turnsToChangeDirection)
+#               await delay(50)
+#            }
+#        }
+#
+#       return this
+#    }
