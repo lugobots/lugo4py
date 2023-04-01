@@ -4,6 +4,7 @@ from .remote_control import RemoteControl
 from .interfaces import BotTrainer, TrainingFunction
 from ..client import LugoClient
 from ..protos.server_pb2 import Team, OrderSet
+import asyncio
 
 
 class Gym(object):
@@ -15,19 +16,13 @@ class Gym(object):
             remoteControl, trainer, trainingFunction)
         self.trainingCrl.debugging_log = debugging_log
 
-    def playCallable(self, orderSet, snapshot):
+    async def playCallable(self, orderSet, snapshot):
         hasStarted = True
-        return self.trainingCrl.gameTurnHandler(orderSet, snapshot)
-        # }, async () => {
-        #     if(this.gameServerAddress) {
-        #         await completeWithZombies(this.gameServerAddress)
-        #     }
-        #     setTimeout(() => {
-        #         if(!hasStarted) {
-        #             this.remoteControl.resumeListening()
-        #         }
-        #     }, 1000);
-        # })
+        await self.trainingCrl.gameTurnHandler(orderSet, snapshot)
+        if self.gameServerAddress:
+            await completeWithZombies(self.gameServerAddress)
+        asyncio.get_running_loop().call_later(
+            1, lambda: self.remoteControl.resumeListening() if not hasStarted else None)
 
     async def start(self, lugoClient: LugoClient):
         # If the game was started in a previous training session, the game server will be stuck on the listening phase.
