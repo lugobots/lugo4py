@@ -5,17 +5,19 @@ from lugo4py.stub import Bot, PLAYER_STATE
 from typing import Union
 
 from lugo4py.protos import server_pb2 as Lugo
-from lugo4py.protos.physics_pb2 import Point, Vector
+from lugo4py.protos.physics_pb2 import Point, Vector, Velocity
 import random
 import traceback
 import time
-from lugo4py.protos.server_pb2 import GameSnapshot
 import random
 from typing import Any, Dict, Tuple
 from lugo4py.snapshot import GameSnapshotReader, Mapper, Direction
-from lugo4py import Order, OrderSet, RemoteControl, Team, Velocity
+from lugo4py.protos.server_pb2 import Order, OrderSet, Team, GameSnapshot
+from lugo4py.rl.remote_control import RemoteControl
+
 
 TRAINING_PLAYER_NUMBER = 5
+PLAYER_NUM = 11
 
 
 class MyBotTrainer:
