@@ -104,4 +104,4 @@ class BotTrainer(ABC):
         pass
 
 
-TrainingFunction = Callable[[TrainingController], None]
+TrainingFunction = Callable[[TrainingController], Awaitable[None]]
