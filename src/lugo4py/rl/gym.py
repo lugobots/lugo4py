@@ -1,9 +1,9 @@
-from src.lugo4py.rl.training_controller import TrainingCrl, delay
-from src.lugo4py.rl.helper_bots import newZombiePlayer, newChaserHelperPlayer, newZombieHelperPlayer
-from src.lugo4py.rl.remote_control import RemoteControl
-from src.lugo4py.rl.interfaces import BotTrainer, TrainingFunction
-from src.lugo4py.client import LugoClient
-from src.lugo4py.protos.server_pb2 import Team, OrderSet
+from training_controller import TrainingCrl, delay
+from .helper_bots import newZombiePlayer, newChaserHelperPlayer, newZombieHelperPlayer
+from .remote_control import RemoteControl
+from .interfaces import BotTrainer, TrainingFunction
+from ..client import LugoClient
+from ..protos.server_pb2 import Team, OrderSet
 import asyncio
 
 
