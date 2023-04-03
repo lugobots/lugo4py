@@ -1,10 +1,10 @@
 from my_bot import MyBotTrainer, TRAINING_PLAYER_NUMBER
-from src.lugo4py.protos import server_pb2
-from src.lugo4py.rl.training_controller import TrainingController
-from src.lugo4py.rl.gym import Gym
-from src.lugo4py.client import LugoClient
-from src.lugo4py.rl.remote_control import RemoteControl
-from src.lugo4py.mapper import Mapper
+from lugo4py.protos import server_pb2
+from lugo4py.rl.training_controller import TrainingController
+from lugo4py.rl.gym import Gym
+from lugo4py.client import LugoClient
+from lugo4py.rl.remote_control import RemoteControl
+from lugo4py.mapper import Mapper
 import sys
 import os
 import asyncio
