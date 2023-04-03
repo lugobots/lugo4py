@@ -35,7 +35,7 @@ class Gym(object):
         return self
 
     async def completeWithZombies(gameServerAddress):
-        for i in range(1, 11):
+        for i in range(1, 12):
             await newZombiePlayer(Team.Side.HOME, i, gameServerAddress)
             await delay(50)
             await newZombiePlayer(Team.Side.AWAY, i, gameServerAddress)
@@ -45,7 +45,7 @@ class Gym(object):
         self.gameServerAddress = gameServerAddress
 
         async def helperPlayers(gameServerAddress):
-            for i in range(1, 11):
+            for i in range(1, 12):
                 await newChaserHelperPlayer(Team.Side.HOME, i, gameServerAddress)
                 await delay(50)
                 await newChaserHelperPlayer(Team.Side.AWAY, i, gameServerAddress)
@@ -57,7 +57,7 @@ class Gym(object):
         self.gameServerAddress = gameServerAddress
 
         async def helperPlayers(gameServerAddress):
-            for i in range(1, 11):
+            for i in range(1, 12):
                 await newZombieHelperPlayer(Team.Side.HOME, i, gameServerAddress, turnsToChangeDirection)
                 await delay(50)
                 await newZombieHelperPlayer(Team.Side.AWAY, i, gameServerAddress, turnsToChangeDirection)
