@@ -1,10 +1,10 @@
-from lugo4py.loader import EnvVarLoader
-from lugo4py.snapshot import GameSnapshotReader, Mapper, Direction, Region
-from lugo4py.stub import Bot
-from lugo4py.protos import server_pb2 as Lugo
-from lugo4py.protos.server_pb2 import GameSnapshot
-from lugo4py.protos import physics_pb2 as Physics
-from lugo4py.rl.remote_control import RemoteControl
+from src.lugo4py.loader import EnvVarLoader
+from src.lugo4py.snapshot import GameSnapshotReader, Mapper, Direction, Region
+from src.lugo4py.stub import Bot
+from src.lugo4py.protos import server_pb2 as Lugo
+from src.lugo4py.protos.server_pb2 import GameSnapshot
+from src.lugo4py.protos import physics_pb2 as Physics
+from src.lugo4py.rl.remote_control import RemoteControl
 import random
 import time
 from typing import Any, Dict, Tuple, Union, List, Optional
