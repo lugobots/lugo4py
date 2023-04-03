@@ -20,7 +20,7 @@ class RemoteControl(object):
     async def connect(self, grpcAddress: str):
         self.channel = grpc.aio.insecure_channel(grpcAddress)
         deadline = datetime.now() + timedelta(seconds=5)
-        await self.channel.channel_ready.wait(deadline=deadline)
+        await self.channel.channel_ready_future.wait(deadline=deadline)
         self.stub = RemoteStub(self.channel)
 
     async def pauseResume(self):
