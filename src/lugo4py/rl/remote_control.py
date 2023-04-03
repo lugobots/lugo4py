@@ -1,63 +1,58 @@
 import asyncio
-from datetime import datetime, timedelta
 import grpc
-from ..protos.remote_pb2 import PauseResumeRequest, BallProperties, NextTurnRequest, PlayerProperties, GameProperties, ResumeListeningRequest
+from datetime import datetime, timedelta
+from ..protos.remote_pb2 import (
+    PauseResumeRequest, NextTurnRequest, NextOrderRequest,
+    BallProperties, PlayerProperties, GameProperties,
+    ResumeListeningRequest, ResumeListeningResponse
+)
+from ..protos.remote_pb2_grpc import RemoteStub
 from ..protos.physics_pb2 import Point, Velocity
 from ..protos.server_pb2 import GameSnapshot, Team
-from ..protos import remote_pb2_grpc
 
 
 class RemoteControl(object):
 
     def __init__(self):
-        self.client = None
+        self.channel = None
+        self.stub = None
 
     async def connect(self, grpcAddress: str):
-        loop = asyncio.get_event_loop()
-        self.client = remote_pb2_grpc.RemoteClient(
-            grpcAddress, grpc.credentials.create_insecure())
+        self.channel = grpc.aio.insecure_channel(grpcAddress)
         deadline = datetime.now() + timedelta(seconds=5)
-
-        def callback(err):
-            if err:
-                print(f"ERROR: {err}")
-                loop.stop()
-            else:
-                loop.stop()
-
-        self.client.wait_for_ready(deadline, callback)
-        loop.run_forever()
+        await self.channel.channel_ready_future.wait(deadline=deadline)
+        self.stub = RemoteStub(self.channel)
 
     async def pauseResume(self):
-        pauseReq = PauseResumeRequest()
-        return asyncio.get_running_loop().run_in_executor(None, lambda: self.client.pauseOrResume(pauseReq))
+        req = PauseResumeRequest()
+        return await self.stub.PauseOrResume(req)
 
     async def resumeListening(self):
         req = ResumeListeningRequest()
-        return await asyncio.to_thread(self.client.resumeListeningPhase, req)
+        return await self.stub.ResumeListeningPhase(req)
 
     async def nextTurn(self):
-        nextTurnReq = NextTurnRequest()
-        return await asyncio.get_event_loop().run_in_executor(None, lambda: self.client.nextTurn(nextTurnReq))
+        req = NextTurnRequest()
+        return await self.stub.NextTurn(req)
+
+    async def nextOrder(self):
+        req = NextOrderRequest()
+        return await self.stub.NextOrder(req)
 
     async def setBallProps(self, position: Point, velocity: Velocity):
-        ball_properties = BallProperties()
-        ball_properties.velocity.CopyFrom(velocity)
-        ball_properties.position.CopyFrom(position)
-        response = await self.client.SetBallProperties(ball_properties)
-        return response.GameSnapshot
+        req = BallProperties(position=position, velocity=velocity)
+        response = await self.stub.SetBallProperties(req)
+        return response
 
-    async def setPlayerProps(self, teamSide: Team.Side, playerNumber: int, newPosition: Point, newVelocity: Velocity) -> GameSnapshot:
-        player_properties = PlayerProperties()
-        player_properties.velocity.CopyFrom(newVelocity)
-        player_properties.position.CopyFrom(newPosition)
-        player_properties.side = teamSide
-        player_properties.number = playerNumber
-        response = await self.client.SetPlayerProperties(player_properties)
-        return response.GameSnapshot
+    async def setPlayerProps(self, teamSide: Team.Side, playerNumber: int, newPosition: Point, newVelocity: Velocity):
+        req = PlayerProperties(
+            side=teamSide, number=playerNumber,
+            position=newPosition, velocity=newVelocity
+        )
+        response = await self.stub.SetPlayerProperties(req)
+        return response
 
-    async def setTurn(self, turnNumber):
-        gameProp = GameProperties()
-        gameProp.setTurn(turnNumber)
-        response = await self.client.setGameProperties(gameProp)
-        return response.game_snapshot
+    async def setGameProps(self, turnNumber: int):
+        req = GameProperties(turn=turnNumber)
+        response = await self.stub.SetGameProperties(req)
+        return response
