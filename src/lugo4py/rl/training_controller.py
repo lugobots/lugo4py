@@ -1,6 +1,5 @@
 import asyncio
 from remote_control import RemoteControl
-# from ..protos.remote_pb2_grpc import RemoteStub
 from .interfaces import TrainingController, BotTrainer, TrainingFunction
 from ..protos.server_pb2 import GameSnapshot, OrderSet
 
@@ -21,8 +20,6 @@ class TrainingCrl(TrainingController):
 
         self.debugging_log = True
         self.stopRequested = False
-
-        # self.gotNewAction = async print('gotNewAction not defined yet - should wait the initialise it on the first "update" call')
 
         self.onReady = onReadyCallback
         self.bot = bot
@@ -46,8 +43,6 @@ class TrainingCrl(TrainingController):
             print('bot trainer failed to return inputs from a particular state', e)
             raise e
 
-    #  return Promise< reward: number done: boolean >
-
     async def update(self, action: any):
         self._debug('UPDATE')
         if not self.waitingForAction:
@@ -55,14 +50,12 @@ class TrainingCrl(TrainingController):
                 "faulty synchrony - got a new action when was still processing the last one")
 
         self.previousState = self.lastSnapshot
-        self._debug('got action for turn $self.lastSnapshot.getTurn()')
         self.lastSnapshot = await self.gotNewAction(action)
         self._debug('got new snapshot after order has been sent')
 
         if (self.stopRequested):
             return {'done': True, 'reward': 0}
 
-        # TODO: if I want to skip the net N turns? I should be able too
         self._debug(
             'update finished (turn $self.lastSnapshot.getTurn() waiting for next action')
         try:
@@ -114,12 +107,12 @@ async def _handleNewAction(self, orderSet, snapshot):
 async def _waitForNewAction(self, timeout):
     self.waitingForAction = True
     self._debug(
-        f'gotNewAction defined, waiting for action (has started: {self.trainingHasStarted})')
+        f'Waiting for action (training has started: {self.trainingHasStarted})')
 
     if not self.trainingHasStarted:
         self.onReady(self)
         self.trainingHasStarted = True
-        self._debug('the training has started')
+        self._debug('The training has started')
 
     try:
         newAction = await asyncio.wait_for(self.gotNewAction, timeout=timeout)
@@ -127,7 +120,7 @@ async def _waitForNewAction(self, timeout):
         return newAction
     except asyncio.TimeoutError:
         self.waitingForAction = False
-        self._debug('max wait for a new action')
+        self._debug('Reached maximum wait time for a new action')
         raise
 
 
@@ -135,6 +128,6 @@ async def _sendOrders(self, orderSet, snapshot, newAction):
     self.waitingForAction = False
     self._gotNextState = lambda newState: self._debug(
         f'Returning result for new action (snapshot of turn {newState.getTurn()})')
-    self._debug(f'sending order for turn {snapshot.getTurn()} based on action')
+    self._debug(f'Sending order for turn {snapshot.getTurn()} based on action')
     orderSet.setTurn(self.lastSnapshot.getTurn())
     await self.bot.play(orderSet, snapshot, newAction)
