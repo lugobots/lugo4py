@@ -1,3 +1,10 @@
+from my_bot import MyBotTrainer, TRAINING_PLAYER_NUMBER
+from lugo4py.protos import server_pb2
+from lugo4py.rl.training_controller import TrainingController
+from lugo4py.rl.gym import Gym
+from lugo4py.client import LugoClient
+from lugo4py.rl.remote_control import RemoteControl
+from lugo4py.mapper import Mapper
 import sys
 import os
 import asyncio
@@ -6,11 +13,6 @@ import asyncio
 sys.path.append("../../src")
 sys.path.append("./src")
 
-from lugo4py.mapper import Mapper
-from lugo4py.client import LugoClient
-from lugo4py import rl
-from lugo4py.protos import server_pb2
-from my_bot import MyBotTrainer, PLAYER_NUM
 
 # training settings
 trainIterations = 500
@@ -25,15 +27,17 @@ grpcAddress = "localhost:5000"
 grpcInsecure = True
 model_path = 'file: ./model_output'
 
-async def myTrainingFunction(trainingCtrl: rl.TrainingController) :
+
+async def myTrainingFunction(trainingCtrl: TrainingController):
     print("Let's start training")
     policyNet = None
-    
+
     await trainingCtrl.stop()
+
 
 async def async_main():
     teamSide = server_pb2.Team.Side.HOME
-    playerNumber = PLAYER_NUM
+    playerNumber = TRAINING_PLAYER_NUMBER
 
     # the map will help us to see the field in quadrants (called regions) instead of working with coordinates
     map = Mapper(10, 6, server_pb2.Team.Side.HOME)
@@ -51,11 +55,11 @@ async def async_main():
         playerNumber,
         initialRegion.getCenter())
 
-    rc = rl.RemoteControl()
+    rc = RemoteControl()
     await rc.connect(grpcAddress)
 
     bot = MyBotTrainer(rc)
-    gym = rl.Gym(rc, bot, myTrainingFunction, debugging_log = False)
+    gym = Gym(rc, bot, myTrainingFunction, debugging_log=False)
 
     await gym.withZombiePlayers(grpcAddress).start(lugoClient)
 
