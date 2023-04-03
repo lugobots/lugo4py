@@ -1,27 +1,39 @@
 import asyncio
 import grpc
 from datetime import datetime, timedelta
-from ..protos.remote_pb2 import (
+from src.lugo4py.protos.remote_pb2 import (
     PauseResumeRequest, NextTurnRequest, NextOrderRequest,
     BallProperties, PlayerProperties, GameProperties,
     ResumeListeningRequest, ResumeListeningResponse
 )
-from ..protos.remote_pb2_grpc import RemoteStub
-from ..protos.physics_pb2 import Point, Velocity
-from ..protos.server_pb2 import GameSnapshot, Team
+from src.lugo4py.protos.remote_pb2_grpc import RemoteStub
+from src.lugo4py.protos.physics_pb2 import Point, Velocity
+from src.lugo4py.protos.server_pb2 import GameSnapshot, Team
 
 
 class RemoteControl(object):
 
     def __init__(self):
-        self.channel = None
-        self.stub = None
+        self.client = None
 
     async def connect(self, grpcAddress: str):
         self.channel = grpc.aio.insecure_channel(grpcAddress)
+        self.client = RemoteStub(self.channel)
+
+        async def _wait_for_ready(channel, deadline):
+            try:
+                await channel.channel_ready(deadline)
+            except Exception as e:
+                print(f"ERROR: {e}")
+                raise e
+
         deadline = datetime.now() + timedelta(seconds=5)
-        await self.channel.channel_ready.wait(deadline=deadline)
-        self.stub = RemoteStub(self.channel)
+
+        try:
+            await _wait_for_ready(self.channel, deadline)
+        except Exception as e:
+            print(f"ERROR: {e}")
+            raise e
 
     async def pauseResume(self):
         req = PauseResumeRequest()
