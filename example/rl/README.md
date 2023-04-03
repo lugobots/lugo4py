@@ -3,7 +3,7 @@
 ## Build pybot docker image:
 
 ```
-docker build -t pybotrl -f ./Dockerfile ../..
+docker build -t pybot -f ./Dockerfile ../..
 ```
 
 ## Run example
