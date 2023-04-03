@@ -1,5 +1,5 @@
 from lugo4py.loader import EnvVarLoader
-from lugo4py.snapshot import GameSnapshotReader, Mapper, Direction
+from lugo4py.snapshot import GameSnapshotReader, Mapper, Direction, Region
 from lugo4py.stub import Bot
 from lugo4py.protos import server_pb2 as Lugo
 from lugo4py.protos.server_pb2 import GameSnapshot
@@ -91,7 +91,7 @@ class MyBotTrainer:
             mapped_opponents.append([None] * self.Mapper.get_num_rows())
         return mapped_opponents
 
-    def has_opponent(self, mapped_opponents: List[List[bool]], region: Mapper.Region) -> bool:
+    def has_opponent(self, mapped_opponents: List[List[bool]], region: Region) -> bool:
         col, row = region.get_col(), region.get_row()
         return mapped_opponents[col][row] is True
 
