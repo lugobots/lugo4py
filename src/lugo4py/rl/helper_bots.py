@@ -1,7 +1,8 @@
 import asyncio
 from ..mapper import Mapper
 from ..client import NewClientFromConfig, RawTurnProcessor
-from ..protos.server_pb2 import GameSnapshot, OrderSet
+from ..protos import server_pb2 as lugo_server_pb2
+from ..protos import remote_pb2 as lugo_remote_pb2
 from lugo4py.snapshot import GameSnapshotReader
 
 PLAYER_POSITIONS = {
@@ -29,7 +30,7 @@ async def newZombiePlayer(teamSide, playerNumber, gameServerAddress):
         lugoClient = NewClientFromConfig(
             gameServerAddress, True, "", teamSide, playerNumber, initialRegion.getCenter())
 
-        async def turnHandler(orderSet: OrderSet, snapshot: GameSnapshot) -> OrderSet:
+        async def turnHandler(orderSet: lugo_remote_pb2.OrderSet, snapshot: lugo_server_pb2.GameSnapshot) -> lugo_remote_pb2.OrderSet:
             orderSet.setDebugMessage(
                 f"{ 'HOME' if teamSide == 0 else 'AWAY' }-{playerNumber} #{snapshot.getTurn()}")
             return orderSet
@@ -40,7 +41,7 @@ async def newZombiePlayer(teamSide, playerNumber, gameServerAddress):
 
 
 async def newChaserHelperPlayer(teamSide, playerNumber, gameServerAddress):
-    async def turnHandler(orderSet: OrderSet, snapshot: GameSnapshot) -> OrderSet:
+    async def turnHandler(orderSet: lugo_remote_pb2.OrderSet, snapshot: lugo_server_pb2.GameSnapshot) -> lugo_remote_pb2.OrderSet:
         reader = GameSnapshotReader(snapshot, teamSide)
         orderSet.addOrders(reader.makeOrderCatch())
         me = reader.getPlayer(teamSide, playerNumber)
@@ -57,7 +58,7 @@ async def newChaserHelperPlayer(teamSide, playerNumber, gameServerAddress):
 
 
 async def newZombieHelperPlayer(teamSide, playerNumber, gameServerAddress):
-    async def turnHandler(orderSet: OrderSet, snapshot: GameSnapshot) -> OrderSet:
+    async def turnHandler(orderSet: lugo_remote_pb2.OrderSet, snapshot: lugo_server_pb2.GameSnapshot) -> lugo_remote_pb2.OrderSet:
         orderSet.setDebugMessage(
             f"{ 'HOME' if teamSide == 0 else 'AWAY' }-{playerNumber} #{snapshot.getTurn()}")
         return orderSet
