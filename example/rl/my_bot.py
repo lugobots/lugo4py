@@ -1,22 +1,15 @@
 from lugo4py.loader import EnvVarLoader
-from lugo4py.snapshot import GameSnapshotReader
-from lugo4py.stub import Bot, PLAYER_STATE
-# from lugo4py.client import NewClientFromConfig
-from typing import Union
-
-from lugo4py.protos import server_pb2 as Lugo
-from lugo4py.protos import physics_pb2 as Physics
-import random
-import traceback
-import time
-import random
-from typing import Any, Dict, Tuple
 from lugo4py.snapshot import GameSnapshotReader, Mapper, Direction
+from lugo4py.stub import Bot
+from lugo4py.protos import server_pb2 as Lugo
+from lugo4py.protos.server_pb2 import GameSnapshot
+from lugo4py.protos import physics_pb2 as Physics
 from lugo4py.rl.remote_control import RemoteControl
-
+import random
+import time
+from typing import Any, Dict, Tuple, Union, List, Optional
 
 TRAINING_PLAYER_NUMBER = 5
-PLAYER_NUM = 11
 
 
 class MyBotTrainer:
@@ -24,35 +17,40 @@ class MyBotTrainer:
         self.remote_control = remote_control
         self.Mapper = None
 
-    async def createNewInitialState(self, data: Any) -> Lugo.GameSnapshot:
+    async def createNewInitialState(self, data: Any) -> GameSnapshot:
         self.Mapper = Mapper(20, 10, Lugo.Team.Side.HOME)
 
+        await self._place_players_on_field()
+
+        await self._set_training_player_properties()
+
+        return await self._initialize_ball()
+
+    async def _place_players_on_field(self):
         for i in range(1, 12):
             await self._randomPlayerPos(self.Mapper, Lugo.Team.Side.HOME, i)
             await self._randomPlayerPos(self.Mapper, Lugo.Team.Side.AWAY, i)
 
-        randomVelocity = Physics.Velocity()
-        randomVelocity.setSpeed(0)
-        randomVelocity.setDirection(Direction.NORTH)
+    async def _set_training_player_properties(self):
+        random_velocity = self._create_velocity(0, Direction.NORTH)
         pos = self.Mapper.getRegion(10, random.randint(2, 7)).getCenter()
-        await self.remote_control.setPlayerProps(Lugo.Team.Side.HOME, TRAINING_PLAYER_NUMBER, pos, randomVelocity)
+        await self.remote_control.setPlayerProps(Lugo.Team.Side.HOME, TRAINING_PLAYER_NUMBER, pos, random_velocity)
 
+    async def _initialize_ball(self):
         ball_pos = (0, 0)
-        ball_velocity = Physics.Velocity()
-        ball_velocity.setSpeed(0)
-        ball_velocity.setDirection(Direction.NORTH)
+        ball_velocity = self._create_velocity(0, Direction.NORTH)
         await self.remote_control.setTurn(1)
         return await self.remote_control.setBallProps(ball_pos, ball_velocity)
 
-    def getState(self, snapshot: Lugo.GameSnapshot) -> Any:
+    def getState(self, snapshot: GameSnapshot) -> Any:
         return [True, True, False]
 
-    async def play(self, orderSet: Lugo.OrderSet, snapshot: Lugo.GameSnapshot, action: Any) -> Lugo.OrderSet:
+    async def play(self, orderSet: Lugo.OrderSet, snapshot: GameSnapshot, action: Any) -> Lugo.OrderSet:
         reader = GameSnapshotReader(snapshot, Lugo.Team.Side.HOME)
         dir = reader.makeOrderMoveByDirection(action)
         return orderSet.setOrdersList([dir])
 
-    async def evaluate(self, previousSnapshot: Lugo.GameSnapshot, newSnapshot: Lugo.GameSnapshot) -> Dict[str, Union[int, bool]]:
+    async def evaluate(self, previousSnapshot: GameSnapshot, newSnapshot: GameSnapshot) -> Dict[str, Union[int, bool]]:
         return {"done": newSnapshot.getTurn() >= 20, "reward": random.random()}
 
     async def _randomPlayerPos(self, Mapper: Mapper, side: Lugo.Team.Side, number: int) -> None:
@@ -61,34 +59,44 @@ class MyBotTrainer:
         min_row = 1
         max_row = 8
 
-        random_velocity = Physics.Velocity()
-        random_velocity.setSpeed(0)
-        random_velocity.setDirection(Direction.NORTH)
+        random_velocity = self._create_velocity(0, Direction.NORTH)
 
         random_col = random.randint(min_col, max_col)
         random_row = random.randint(min_row, max_row)
         random_position = Mapper.getRegion(random_col, random_row).getCenter()
         await self.remote_control.setPlayerProps(side, number, random_position, random_velocity)
 
-    def find_opponent(reader):
-        get_opponents = reader.get_team(
+    def _create_velocity(self, speed: float, direction: Direction) -> Physics.Velocity:
+        velocity = Physics.Velocity()
+        velocity.setSpeed(speed)
+        velocity.setDirection(direction)
+        return velocity
+
+    def find_opponent(self, reader: GameSnapshotReader) -> List[List[bool]]:
+        opponents = reader.get_team(
             reader.get_opponent_side()).get_players_list()
-        mapped_opponents = []
-        for opponent in get_opponents:
-            opponent_region = Mapper.get_region_from_point(
+        mapped_opponents = self._create_empty_mapped_opponents()
+
+        for opponent in opponents:
+            opponent_region = self.Mapper.get_region_from_point(
                 opponent.get_position())
-            if mapped_opponents[opponent_region.get_col()] == None:
-                mapped_opponents[opponent_region.get_col()] = []
-            mapped_opponents[opponent_region.get_col(
-            )][opponent_region.get_row()] = True
+            col, row = opponent_region.get_col(), opponent_region.get_row()
+            mapped_opponents[col][row] = True
+
         return mapped_opponents
 
-    def has_opponent(mapped_opponents, region):
-        return (mapped_opponents[region.get_col()] != None and
-                mapped_opponents[region.get_col()][region.get_row()] == True)
+    def _create_empty_mapped_opponents(self) -> List[List[Optional[bool]]]:
+        mapped_opponents = []
+        for _ in range(self.Mapper.get_num_cols()):
+            mapped_opponents.append([None] * self.Mapper.get_num_rows())
+        return mapped_opponents
 
-    def random_integer(min_val, max_val):
+    def has_opponent(self, mapped_opponents: List[List[bool]], region: Mapper.Region) -> bool:
+        col, row = region.get_col(), region.get_row()
+        return mapped_opponents[col][row] is True
+
+    def random_integer(self, min_val: int, max_val: int) -> int:
         return random.randint(min_val, max_val)
 
-    def delay(ms):
+    def delay(self, ms: float) -> None:
         time.sleep(ms / 1000)
