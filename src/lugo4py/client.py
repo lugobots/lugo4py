@@ -21,10 +21,12 @@ PROTOCOL_VERSION = "1.0.0"
 
 RawTurnProcessor = Callable[[Any, Any], Awaitable[Any]]
 
+
 class LugoClient(server_grpc.GameServicer):
 
     def __init__(self, server_add, grpc_insecure, token, teamSide, number, init_position):
-        self.callback = Callable[[server_pb2.GameSnapshot], server_pb2.OrderSet]
+        self.callback = Callable[[
+            server_pb2.GameSnapshot], server_pb2.OrderSet]
         self.serverAdd = server_add
         self.grpc_insecure = grpc_insecure
         self.token = token
@@ -40,7 +42,7 @@ class LugoClient(server_grpc.GameServicer):
     def set_initial_position(self, initial_position: Point):
         self.init_position = initial_position
 
-    def getting_ready_handler(self, snapshot : server_pb2.GameSnapshot):
+    def getting_ready_handler(self, snapshot: server_pb2.GameSnapshot):
         print(f'Default getting ready handler called for {snapshot}')
 
     def setReadyHandler(self, newReadyHandler):
@@ -56,33 +58,33 @@ class LugoClient(server_grpc.GameServicer):
             token=token,
             team_side=server_pb2.Team.Side.Value(team),
             number=number,
-            init_position=self.initial_position,
+            init_position=self.init_position,
         )
 
         retries = 3
         for i in range(retries):
             try:
-                await self._init( join_request)
+                await self._init(join_request)
             except Exception as e:
                 print(e)
                 time.sleep(1)
 
-    
     async def _init(self, join_request: server_pb2.JoinRequest) -> None:
         for snapshot in self._client.JoinATeam(join_request):
             try:
                 if snapshot.state == server_pb2.GameSnapshot.State.OVER:
-                    break 
+                    break
 
                 elif snapshot.state == server_pb2.GameSnapshot.State.LISTENING:
-                    
+
                     orders = self.callback(snapshot)
 
                     if orders:
                         self._client.SendOrders(orders)
                         pass
                     else:
-                        print(f"[turn #{snapshot.turn}] bot did not return orders")
+                        print(
+                            f"[turn #{snapshot.turn}] bot did not return orders")
 
                 elif snapshot.state == server_pb2.GameSnapshot.State.GET_READY:
                     await self.getting_ready_handler(snapshot)
@@ -91,9 +93,9 @@ class LugoClient(server_grpc.GameServicer):
                 print("internal error processing turn", e)
                 traceback.print_exc()
 
-
     async def play_as_bot(self, bot: Bot):
-        join_request = server_pb2.JoinRequest(token = self.token, team_side = self.teamSide, number = self.number, init_position = self.init_position)
+        join_request = server_pb2.JoinRequest(
+            token=self.token, team_side=self.teamSide, number=self.number, init_position=self.init_position)
         # join_request = server_pb2.JoinRequest({'token':self.token,  'team_side' : self.teamSide, 'number' : self.number, 'init_position': self.init_position})
         print(join_request)
 
@@ -106,22 +108,22 @@ class LugoClient(server_grpc.GameServicer):
                 traceback.print_exc()
                 time.sleep(1)
 
-
-
     async def _bot_start(self, bot: Bot, join_request: server_pb2.JoinRequest) -> None:
         print("Bot Starting")
         for snapshot in self._client.JoinATeam(join_request):
             try:
                 if snapshot.state == server_pb2.GameSnapshot.State.OVER:
-                    break 
+                    break
 
                 elif snapshot.state == server_pb2.GameSnapshot.State.LISTENING:
 
-                    playerState = defineState(snapshot, self.number, self.teamSide)
+                    playerState = defineState(
+                        snapshot, self.number, self.teamSide)
                     orders = server_pb2.OrderSet()
 
                     if (self.number == 1):
-                        orders = bot.asGoalkeeper(orders, snapshot, playerState)
+                        orders = bot.asGoalkeeper(
+                            orders, snapshot, playerState)
 
                     else:
                         if playerState == PLAYER_STATE.DISPUTING_THE_BALL:
@@ -141,7 +143,8 @@ class LugoClient(server_grpc.GameServicer):
                         self._client.SendOrders(orders)
 
                     else:
-                        print(f"[turn #{snapshot.turn}] bot did not return orders")
+                        print(
+                            f"[turn #{snapshot.turn}] bot did not return orders")
 
                 elif snapshot.state == server_pb2.GameSnapshot.State.GET_READY:
                     await bot.gettingReady(snapshot)
@@ -158,6 +161,7 @@ class LugoClient(server_grpc.GameServicer):
         instance.set_client(client)
         return instance
 
+
 def NewClientFromConfig(config: EnvVarLoader, initialPosition: Point) -> LugoClient:
     return LugoClient(
         config.getGrpcUrl(),
@@ -167,6 +171,7 @@ def NewClientFromConfig(config: EnvVarLoader, initialPosition: Point) -> LugoCli
         config.getBotNumber(),
         initialPosition,
     )
+
 
 def _get_config() -> Tuple[str, bool]:
     url = os.environ.get("BOT_GRPC_URL")
@@ -183,4 +188,3 @@ def _get_client() -> server_grpc.GameStub:
     else:
         channel = grpc.secure_channel(url, grpc.ssl_channel_credentials())
     return server_grpc.GameStub(channel)
-

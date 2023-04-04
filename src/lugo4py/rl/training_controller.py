@@ -68,66 +68,67 @@ class TrainingCrl(TrainingController):
     def _gotNextState(self, newState: GameSnapshot):
         self._debug('No one waiting for the next state')
 
+    async def gameTurnHandler(self, orderSet, snapshot):
+        self._debug('new turn')
+        if self.waitingForAction:
+            raise RuntimeError(
+                "faulty synchrony - got new turn while waiting for order (check the lugo 'timer-mode')")
 
-async def gameTurnHandler(self, orderSet, snapshot):
-    self._debug('new turn')
-    if self.waitingForAction:
-        raise RuntimeError(
-            "faulty synchrony - got new turn while waiting for order (check the lugo 'timer-mode')")
+        self._gotNextState(snapshot)
 
-    self._gotNextState(snapshot)
+        return await asyncio.gather(
+            asyncio.sleep(5),
+            self._handleNewAction(orderSet, snapshot)
+        )
 
-    return await asyncio.gather(
-        asyncio.sleep(5),
-        self._handleNewAction(orderSet, snapshot)
-    )
+    async def _handleNewAction(self, orderSet, snapshot):
+        if self.stopRequested:
+            self._debug(
+                'stop requested - will not defined call back for new actions')
+            return orderSet
 
+        try:
+            newAction = await self._waitForNewAction(5000)
+            self._debug('sending new action')
+            await self._sendOrders(orderSet, snapshot, newAction)
+            self._debug('order sent, calling next turn')
+            await asyncio.sleep(0.08)
+            self._debug('RESUME NOW!')
+            await self.remoteControl.resumeListening()
+            self._debug('listening resumed')
+        except Exception as e:
+            print('failed to send the orders to the server', e)
 
-async def _handleNewAction(self, orderSet, snapshot):
-    if self.stopRequested:
-        self._debug(
-            'stop requested - will not defined call back for new actions')
         return orderSet
 
-    try:
-        newAction = await self._waitForNewAction(5000)
-        self._debug('sending new action')
-        await self._sendOrders(orderSet, snapshot, newAction)
-        self._debug('order sent, calling next turn')
-        await asyncio.sleep(0.08)
-        self._debug('RESUME NOW!')
-        await self.remoteControl.resumeListening()
-        self._debug('listening resumed')
-    except Exception as e:
-        print('failed to send the orders to the server', e)
+    async def _waitForNewAction(self, timeout):
+        self.waitingForAction = True
+        self._debug(
+            f'Waiting for action (training has started: {self.trainingHasStarted})')
 
-    return orderSet
+        if not self.trainingHasStarted:
+            self.onReady(self)
+            self.trainingHasStarted = True
+            self._debug('The training has started')
 
+        try:
+            newAction = await asyncio.wait_for(self.gotNewAction, timeout=timeout)
+            self.waitingForAction = False
+            return newAction
+        except asyncio.TimeoutError:
+            self.waitingForAction = False
+            self._debug('Reached maximum wait time for a new action')
+            raise
 
-async def _waitForNewAction(self, timeout):
-    self.waitingForAction = True
-    self._debug(
-        f'Waiting for action (training has started: {self.trainingHasStarted})')
-
-    if not self.trainingHasStarted:
-        self.onReady(self)
-        self.trainingHasStarted = True
-        self._debug('The training has started')
-
-    try:
-        newAction = await asyncio.wait_for(self.gotNewAction, timeout=timeout)
+    async def _sendOrders(self, orderSet, snapshot, newAction):
         self.waitingForAction = False
-        return newAction
-    except asyncio.TimeoutError:
-        self.waitingForAction = False
-        self._debug('Reached maximum wait time for a new action')
-        raise
+        self._gotNextState = lambda newState: self._debug(
+            f'Returning result for new action (snapshot of turn {newState.getTurn()})')
+        self._debug(
+            f'Sending order for turn {snapshot.getTurn()} based on action')
+        orderSet.setTurn(self.lastSnapshot.getTurn())
+        await self.bot.play(orderSet, snapshot, newAction)
 
-
-async def _sendOrders(self, orderSet, snapshot, newAction):
-    self.waitingForAction = False
-    self._gotNextState = lambda newState: self._debug(
-        f'Returning result for new action (snapshot of turn {newState.getTurn()})')
-    self._debug(f'Sending order for turn {snapshot.getTurn()} based on action')
-    orderSet.setTurn(self.lastSnapshot.getTurn())
-    await self.bot.play(orderSet, snapshot, newAction)
+    def stop(self):
+        self.stopRequested = True
+        self.remoteControl.stop()

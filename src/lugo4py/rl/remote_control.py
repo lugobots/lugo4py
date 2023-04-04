@@ -22,7 +22,7 @@ class RemoteControl(object):
 
         async def _wait_for_ready(channel, deadline):
             try:
-                await channel.channel_ready(deadline)
+                await channel.wait_for_state_change(grpc.ChannelConnectivity.READY)
             except Exception as e:
                 print(f"ERROR: {e}")
                 raise e
