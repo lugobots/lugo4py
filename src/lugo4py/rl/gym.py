@@ -9,11 +9,12 @@ import asyncio
 
 class Gym(object):
 
-    def __init__(self, remoteControl: RemoteControl, trainer: BotTrainer, trainingFunction: TrainingFunction,  debugging_log=False):
+    def __init__(self, lugo_client: LugoClient, trainer: BotTrainer, trainingFunction: TrainingFunction, debugging_log=False):
         self.gameServerAddress = ''
-        self.remoteControl = remoteControl
+        self.lugo_client = lugo_client
+        self.remoteControl = RemoteControl(lugo_client)
         self.trainingCrl = TrainingCrl(
-            remoteControl, trainer, trainingFunction)
+            lugo_client, trainer, trainingFunction)
         self.trainingCrl.debugging_log = debugging_log
 
     async def playCallable(self, orderSet, snapshot):

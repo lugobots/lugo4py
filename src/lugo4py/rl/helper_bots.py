@@ -63,8 +63,6 @@ async def newZombieHelperPlayer(teamSide, playerNumber, gameServerAddress):
             f"{ 'HOME' if teamSide == 0 else 'AWAY' }-{playerNumber} #{snapshot.getTurn()}")
         return orderSet
 
-    return await newCustomHelperPlayer(teamSide, playerNumber, gameServerAddress, turnHandler)
-
 
 async def newCustomHelperPlayer(teamSide, playerNumber, gameServerAddress, turnHandler: RawTurnProcessor):
     try:

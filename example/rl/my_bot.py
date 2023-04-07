@@ -1,3 +1,5 @@
+import random
+from typing import Any, Dict, Union, List, Optional
 from src.lugo4py.loader import EnvVarLoader
 from src.lugo4py.snapshot import GameSnapshotReader, Mapper, Direction, Region
 from src.lugo4py.stub import Bot
@@ -5,9 +7,8 @@ from src.lugo4py.protos import server_pb2 as Lugo
 from src.lugo4py.protos.server_pb2 import GameSnapshot
 from src.lugo4py.protos import physics_pb2 as Physics
 from src.lugo4py.rl.remote_control import RemoteControl
-import random
 import time
-from typing import Any, Dict, Tuple, Union, List, Optional
+
 
 TRAINING_PLAYER_NUMBER = 5
 
@@ -20,24 +21,15 @@ class MyBotTrainer:
     async def createNewInitialState(self, data: Any) -> GameSnapshot:
         self.Mapper = Mapper(20, 10, Lugo.Team.Side.HOME)
 
-        await self._place_players_on_field()
-
-        await self._set_training_player_properties()
-
-        return await self._initialize_ball()
-
-    async def _place_players_on_field(self):
         for i in range(1, 12):
             await self._randomPlayerPos(self.Mapper, Lugo.Team.Side.HOME, i)
             await self._randomPlayerPos(self.Mapper, Lugo.Team.Side.AWAY, i)
 
-    async def _set_training_player_properties(self):
         random_velocity = self._create_velocity(0, Direction.NORTH)
         pos = self.Mapper.getRegion(10, random.randint(2, 7)).getCenter()
         await self.remote_control.setPlayerProps(Lugo.Team.Side.HOME, TRAINING_PLAYER_NUMBER, pos, random_velocity)
 
-    async def _initialize_ball(self):
-        ball_pos = (0, 0)
+        ball_pos = self.Mapper.getRegion(0, 0).getCenter()
         ball_velocity = self._create_velocity(0, Direction.NORTH)
         await self.remote_control.setTurn(1)
         return await self.remote_control.setBallProps(ball_pos, ball_velocity)
