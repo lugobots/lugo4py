@@ -23,7 +23,6 @@ class TrainingCrl(TrainingController):
 
         self.onReady = onReadyCallback
         self.bot = bot
-        self.remoteControl = remoteControl
 
     async def setRandomState(self):
         self._debug('Reset state')
@@ -132,3 +131,7 @@ class TrainingCrl(TrainingController):
     def stop(self):
         self.stopRequested = True
         self.remoteControl.stop()
+
+    def _debug(self, message: str):
+        if self.debugging_log:
+            print(f"[TrainingCrl] {message}")
