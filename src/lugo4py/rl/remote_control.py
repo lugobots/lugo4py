@@ -14,9 +14,8 @@ from src.lugo4py.client import LugoClient
 
 class RemoteControl(object):
 
-    def __init__(self, lugo_client: LugoClient):
-        self.lugo_client = lugo_client
-        self.channel = self.lugo_client
+    def __init__(self, channel: grpc.Channel):
+        self.channel = channel
 
     async def pauseResume(self):
         req = PauseResumeRequest()

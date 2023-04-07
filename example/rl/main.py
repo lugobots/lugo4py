@@ -7,6 +7,11 @@ from src.lugo4py.client import LugoClient
 from src.lugo4py.rl.remote_control import RemoteControl
 from src.lugo4py.mapper import Mapper
 from src.lugo4py.snapshot import DIRECTION
+from typing import Tuple, Callable, Awaitable, Any
+import grpc
+
+import os
+
 import random
 
 # Training settings
@@ -37,8 +42,9 @@ async def main():
         TRAINING_PLAYER_NUMBER,
         initial_region.getCenter())
 
+    print("bla blafufufufuf2 ")
     # The RemoteControl is a gRPC client that will connect to the Game Server and change the element positions
-    rc = RemoteControl(lugo_client)  # Pass LugoClient instance here
+    rc = RemoteControl(_get_client())  # Pass LugoClient instance here
 
     bot = MyBotTrainer(rc)
 
@@ -103,3 +109,20 @@ async def my_training_function(training_ctrl: TrainingController):
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+
+def _get_config() -> Tuple[str, bool]:
+    url = os.environ.get("BOT_GRPC_URL")
+    if url is None:
+        raise Exception("BOT_GRPC_URL is not set")
+    insecure = os.environ.get("BOT_GRPC_INSECURE", "false").lower() == "true"
+    return url, insecure
+
+
+def _get_client() -> grpc.Channel:
+    url, insecure = _get_config()
+    if insecure:
+        channel = grpc.insecure_channel(url)
+    else:
+        channel = grpc.secure_channel(url, grpc.ssl_channel_credentials())
+    return channel

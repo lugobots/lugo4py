@@ -34,7 +34,7 @@ class LugoClient(server_grpc.GameServicer):
         self.number = number
         self.init_position = init_position
 
-        self._client = _get_client()
+        self.channel, self._client = _get_client()
 
     def set_client(self, client: server_grpc.GameStub):
         self._client = client
@@ -157,7 +157,7 @@ class LugoClient(server_grpc.GameServicer):
     def new_client(cls, initial_position: Point) -> 'LugoClient':
         instance = cls()
         instance.set_initial_position(initial_position)
-        client = _get_client()
+        _, client = _get_client()
         instance.set_client(client)
         return instance
 
@@ -181,10 +181,10 @@ def _get_config() -> Tuple[str, bool]:
     return url, insecure
 
 
-def _get_client() -> server_grpc.GameStub:
+def _get_client() -> Tuple[grpc.Channel,  server_grpc.GameStub]:
     url, insecure = _get_config()
     if insecure:
         channel = grpc.insecure_channel(url)
     else:
         channel = grpc.secure_channel(url, grpc.ssl_channel_credentials())
-    return server_grpc.GameStub(channel)
+    return channel, server_grpc.GameStub(channel)
