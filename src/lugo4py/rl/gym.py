@@ -13,13 +13,15 @@ class Gym(object):
         self.gameServerAddress = ''
         self.lugo_client = lugo_client
         self.remoteControl = RemoteControl(lugo_client)
-        self.trainingCrl = TrainingCrl(
-            lugo_client, trainer, trainingFunction)
-        self.trainingCrl.debugging_log = debugging_log
+        self.trainingController = TrainingCrl(
+            self.remoteControl, BotTrainer, trainingFunction)
 
-    async def playCallable(self, orderSet, snapshot):
+        self.trainingController.debugging_log = debugging_log
+
+    async def playCallable(self, snapshot):
         hasStarted = True
-        await self.trainingCrl.gameTurnHandler(orderSet, snapshot)
+        orderSet = OrderSet()
+        await self.trainingController.gameTurnHandler(orderSet, snapshot)
         if self.gameServerAddress:
             await self.completeWithZombies(self.gameServerAddress)
         asyncio.get_running_loop().call_later(
@@ -35,7 +37,7 @@ class Gym(object):
         self.gameServerAddress = gameServerAddress
         return self
 
-    async def completeWithZombies(gameServerAddress):
+    async def completeWithZombies(self, gameServerAddress):
         for i in range(1, 12):
             await newZombiePlayer(Team.Side.HOME, i, gameServerAddress)
             await delay(50)
