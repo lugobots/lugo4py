@@ -20,12 +20,6 @@ class RemoteControl:
     async def connect(self, grpc_address: str) -> None:
         async with grpc.aio.insecure_channel(grpc_address) as channel:
             self.client = RemoteStub(channel)
-            deadline = grpc.deadline(time.time() + 5)
-            try:
-                await channel.wait_for_ready(deadline)
-            except grpc.FutureTimeoutError as err:
-                print("ERROR:", err)
-                raise err
 
     async def pauseResume(self):
         req = PauseResumeRequest()

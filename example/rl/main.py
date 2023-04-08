@@ -43,7 +43,8 @@ async def main():
         initial_region.getCenter())
 
     # The RemoteControl is a gRPC client that will connect to the Game Server and change the element positions
-    rc = RemoteControl(_get_client())  # Pass LugoClient instance here
+    rc = RemoteControl()
+    await rc.connect(grpc_address)  # Pass address here
 
     bot = MyBotTrainer(rc)
 
