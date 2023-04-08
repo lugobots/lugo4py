@@ -10,12 +10,22 @@ from src.lugo4py.protos.remote_pb2_grpc import RemoteStub
 from src.lugo4py.protos.physics_pb2 import Point, Velocity
 from src.lugo4py.protos.server_pb2 import GameSnapshot, Team
 from src.lugo4py.client import LugoClient
+import time
 
 
-class RemoteControl(object):
+class RemoteControl:
+    def __init__(self):
+        self.client = None
 
-    def __init__(self, channel: grpc.Channel):
-        self.channel = channel
+    async def connect(self, grpc_address: str) -> None:
+        async with grpc.aio.insecure_channel(grpc_address) as channel:
+            self.client = RemoteStub(channel)
+            deadline = grpc.deadline(time.time() + 5)
+            try:
+                await channel.wait_for_ready(deadline)
+            except grpc.FutureTimeoutError as err:
+                print("ERROR:", err)
+                raise err
 
     async def pauseResume(self):
         req = PauseResumeRequest()
