@@ -1,9 +1,9 @@
 import asyncio
-from src.lugo4py.mapper import Mapper
-from src.lugo4py.client import NewClientFromConfig, RawTurnProcessor
-from src.lugo4py.protos import server_pb2 as lugo_server_pb2
-from src.lugo4py.protos import remote_pb2 as lugo_remote_pb2
-from src.lugo4py.snapshot import GameSnapshotReader
+from ..mapper import Mapper
+from ..client import NewClientFromConfig, RawTurnProcessor
+from ..protos import server_pb2 as lugo_server_pb2
+from ..protos import remote_pb2 as lugo_remote_pb2
+from ..snapshot import GameSnapshotReader
 
 PLAYER_POSITIONS = {
     1: {'Col': 0, 'Row': 1},

@@ -1,4 +1,4 @@
-from src.lugo4py.protos.server_pb2 import GameSnapshot, OrderSet
+from ..protos.server_pb2 import GameSnapshot, OrderSet
 from abc import ABC, abstractmethod
 import asyncio
 from typing import Tuple, Callable, Awaitable, Any
