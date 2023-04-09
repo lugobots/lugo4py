@@ -1,3 +1,4 @@
+import random
 from my_bot import MyBotTrainer, TRAINING_PLAYER_NUMBER
 from lugo4py.protos import server_pb2
 from lugo4py.rl.training_controller import TrainingController
@@ -11,7 +12,8 @@ import grpc
 import asyncio
 import os
 
-import random
+os.environ["BOT_GRPC_URL"] = "http://localhost:8080"
+os.environ["BOT_GRPC_INSECURE"] = "true"
 
 
 # Training settings
