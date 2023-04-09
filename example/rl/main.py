@@ -11,10 +11,19 @@ from typing import Tuple, Callable, Awaitable, Any
 import grpc
 import asyncio
 import os
+from lugo4py.loader import EnvVarLoader
 
-os.environ["BOT_GRPC_URL"] = "http://localhost:8080"
-os.environ["BOT_GRPC_INSECURE"] = "true"
 
+def set_environment_variables():
+    os.environ["BOT_GRPC_URL"] = "localhost:5000"
+    os.environ["BOT_GRPC_INSECURE"] = "true"
+    os.environ["BOT_NUMBER"] = str(TRAINING_PLAYER_NUMBER)
+    os.environ["BOT_TEAM"] = "home"
+
+
+set_environment_variables()
+
+env_loader = EnvVarLoader()
 
 # Training settings
 train_iterations = 50
