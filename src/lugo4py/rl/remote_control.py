@@ -1,15 +1,15 @@
 import asyncio
 import grpc
 from datetime import datetime, timedelta
-from src.lugo4py.protos.remote_pb2 import (
+from ..protos.remote_pb2 import (
     PauseResumeRequest, NextTurnRequest, NextOrderRequest,
     BallProperties, PlayerProperties, GameProperties,
     ResumeListeningRequest, ResumeListeningResponse
 )
-from src.lugo4py.protos.remote_pb2_grpc import RemoteStub
-from src.lugo4py.protos.physics_pb2 import Point, Velocity
-from src.lugo4py.protos.server_pb2 import GameSnapshot, Team
-from src.lugo4py.client import LugoClient
+from ..protos.remote_pb2_grpc import RemoteStub
+from ..protos.physics_pb2 import Point, Velocity
+from ..protos.server_pb2 import GameSnapshot, Team
+from ..client import LugoClient
 import time
 
 
