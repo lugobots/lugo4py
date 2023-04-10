@@ -44,7 +44,7 @@ class Gym:
         self.gameServerAddress = gameServerAddress
 
         async def helper_players(self, gameServerAddress: str):
-            for i in range(1, 22):
+            for i in range(1, 12):
                 await newZombieHelperPlayer(
                     Team.Side.HOME, i, gameServerAddress)
                 await newZombieHelperPlayer(
