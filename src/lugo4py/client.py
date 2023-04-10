@@ -49,6 +49,8 @@ class LugoClient(server_grpc.GameServicer):
         self.getting_ready_handler = newReadyHandler
 
     async def play(self, callback: Callable[[server_pb2.GameSnapshot], server_pb2.OrderSet]):
+        print(f"Entered play function for {self.teamSide} - {self.number}")
+
         self.callback = callback
         team = os.environ.get("BOT_TEAM").upper()
         number = int(os.environ.get("BOT_NUMBER"))
@@ -67,9 +69,10 @@ class LugoClient(server_grpc.GameServicer):
                 await self._init(join_request)
             except Exception as e:
                 print(e)
-                time.sleep(1)
+                time.sleep(0.1)
 
     async def _init(self, join_request: server_pb2.JoinRequest) -> None:
+        print("esperando resposta")
         for snapshot in self._client.JoinATeam(join_request):
             try:
                 if snapshot.state == server_pb2.GameSnapshot.State.OVER:
@@ -106,11 +109,15 @@ class LugoClient(server_grpc.GameServicer):
             except Exception as e:
                 print(e)
                 traceback.print_exc()
-                time.sleep(1)
+                time.sleep(0.1)
 
     async def _bot_start(self, bot: Bot, join_request: server_pb2.JoinRequest) -> None:
         print("Bot Starting")
+        print(f"Bot {self.number} on team {self.teamSide} starting")
+
         for snapshot in self._client.JoinATeam(join_request):
+            print(
+                f"Bot {self.number} on team {self.teamSide} processing snapshot")
             try:
                 if snapshot.state == server_pb2.GameSnapshot.State.OVER:
                     break

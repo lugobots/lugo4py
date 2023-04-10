@@ -76,7 +76,7 @@ class TrainingCrl(TrainingController):
         self._gotNextState(snapshot)
 
         return await asyncio.gather(
-            asyncio.sleep(5),
+            asyncio.sleep(0.1),
             self._handleNewAction(orderSet, snapshot)
         )
 
