@@ -74,12 +74,9 @@ async def newZombieHelperPlayer(teamSide, playerNumber, gameServerAddress):
     print('New helper zombie', teamSide, playerNumber, gameServerAddress)
 
     async def turnHandler(orderSet: lugo_server_pb2.OrderSet, snapshot: lugo_server_pb2.GameSnapshot) -> lugo_server_pb2.OrderSet:
-        print('Turna handler')
         orderSet.setDebugMessage(
             f"{ 'HOME' if teamSide == 0 else 'AWAY' }-{playerNumber} #{snapshot.getTurn()}")
         return orderSet
-
-    # Adicione esta linha para chamar newCustomHelperPlayer
     await newCustomHelperPlayer(teamSide, playerNumber, gameServerAddress, turnHandler)
 
 
