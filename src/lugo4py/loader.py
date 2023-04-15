@@ -22,10 +22,10 @@ class EnvVarLoader:
             raise SystemError("missing BOT_NUMBER env value")
 
         # the Lugo address
-        self._grpcUrl = os.environ["BOT_GRPC_URL"] if "BOT_GRPC_URL" in os.environ else 'localhost:5000'
-        if "BOT_GRPC_INSECURE" in os.environ:
-            self._grpcUrl = bool(os.environ["BOT_GRPC_INSECURE"])
-        
+        self._grpcUrl = os.environ.get('BOT_GRPC_URL', 'localhost:5000')
+        self._grpcInsecure = bool(os.environ.get('BOT_GRPC_INSECURE', 'false'))
+
+
         # defining bot side
         self._botTeamSide = server_pb2.Team.Side.HOME if os.environ["BOT_TEAM"].upper() == 'HOME' else server_pb2.Team.Side.AWAY
         self._botNumber = int(os.environ["BOT_NUMBER"])
