@@ -56,7 +56,9 @@ if __name__ == "__main__":
     my_bot = MyBot(config.getBotTeamSide(), config.getBotNumber(), initialRegion.getCenter(), map)
 
     print("Bot will start running")
-    asyncio.run(lugo_client.play_as_bot(my_bot))
+    asyncio.run(lugo_client.play_as_bot(my_bot, lambda:
+        print("joint!")
+    ))
     # lugo_client.play_as_bot(my_bot)
 
     print("All good!")
