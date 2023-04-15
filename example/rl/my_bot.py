@@ -1,8 +1,6 @@
 import random
 from typing import Any, Dict, Union, List, Optional
-from src.lugo4py.loader import EnvVarLoader
 from src.lugo4py.snapshot import GameSnapshotReader, Mapper, Direction, Region
-from src.lugo4py.stub import Bot
 from src.lugo4py.protos import server_pb2 as Lugo
 from src.lugo4py.protos.server_pb2 import GameSnapshot
 from src.lugo4py.protos import physics_pb2 as Physics

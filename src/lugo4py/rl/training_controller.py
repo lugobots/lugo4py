@@ -1,7 +1,7 @@
 import asyncio
-from src.lugo4py.rl.remote_control import RemoteControl
-from src.lugo4py.rl.interfaces import TrainingController, BotTrainer, TrainingFunction
-from src.lugo4py.protos.server_pb2 import GameSnapshot, OrderSet
+from .remote_control import RemoteControl
+from .interfaces import TrainingController, BotTrainer, TrainingFunction
+from ..protos.server_pb2 import GameSnapshot, OrderSet
 
 
 def delay(ms): return asyncio.sleep(ms)
@@ -76,7 +76,7 @@ class TrainingCrl(TrainingController):
         self._gotNextState(snapshot)
 
         return await asyncio.gather(
-            asyncio.sleep(5),
+            asyncio.sleep(0.1),
             self._handleNewAction(orderSet, snapshot)
         )
 

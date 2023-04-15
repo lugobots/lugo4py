@@ -1,5 +1,5 @@
-import asyncio
-from my_bot import MyBotTrainer, TRAINING_PLAYER_NUMBER
+import random
+from .my_bot import MyBotTrainer, TRAINING_PLAYER_NUMBER
 from src.lugo4py.protos import server_pb2
 from src.lugo4py.rl.training_controller import TrainingController
 from src.lugo4py.rl.gym import Gym
@@ -9,10 +9,21 @@ from src.lugo4py.mapper import Mapper
 from src.lugo4py.snapshot import DIRECTION
 from typing import Tuple, Callable, Awaitable, Any
 import grpc
-
+import asyncio
 import os
+from src.lugo4py.loader import EnvVarLoader
 
-import random
+
+def set_environment_variables():
+    os.environ["BOT_GRPC_URL"] = "localhost:5000"
+    os.environ["BOT_GRPC_INSECURE"] = "true"
+    os.environ["BOT_NUMBER"] = str(TRAINING_PLAYER_NUMBER)
+    os.environ["BOT_TEAM"] = "home"
+
+
+set_environment_variables()
+
+env_loader = EnvVarLoader()
 
 # Training settings
 train_iterations = 50
@@ -42,9 +53,9 @@ async def main():
         TRAINING_PLAYER_NUMBER,
         initial_region.getCenter())
 
-    print("bla blafufufufuf2 ")
     # The RemoteControl is a gRPC client that will connect to the Game Server and change the element positions
-    rc = RemoteControl(_get_client())  # Pass LugoClient instance here
+    rc = RemoteControl()
+    await rc.connect(grpc_address)  # Pass address here
 
     bot = MyBotTrainer(rc)
 
@@ -55,9 +66,9 @@ async def main():
     # If you want to train playing against another bot, then you should start the other team first.
     # If you want to train using two teams, you should start the away team, then start the training bot, and finally start the home team
     # await gym.start(lugo_client)
-
-    # If you want to train controlling all players, use the with_zombie_players players to create zombie players.
     await gym.withZombiePlayers(grpc_address).start(lugo_client)
+    # If you want to train controlling all players, use the with_zombie_players players to create zombie players.
+    # await gym.withZombiePlayers(grpc_address).start(lugo_client)
 
     # If you want to train against bots running randomly, you can use this helper
     # await gym.with_random_motion_players(grpc_address, 10).start(lugo_client)
@@ -109,20 +120,3 @@ async def my_training_function(training_ctrl: TrainingController):
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-
-def _get_config() -> Tuple[str, bool]:
-    url = os.environ.get("BOT_GRPC_URL")
-    if url is None:
-        raise Exception("BOT_GRPC_URL is not set")
-    insecure = os.environ.get("BOT_GRPC_INSECURE", "false").lower() == "true"
-    return url, insecure
-
-
-def _get_client() -> grpc.Channel:
-    url, insecure = _get_config()
-    if insecure:
-        channel = grpc.insecure_channel(url)
-    else:
-        channel = grpc.secure_channel(url, grpc.ssl_channel_credentials())
-    return channel
