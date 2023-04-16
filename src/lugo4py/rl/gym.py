@@ -24,6 +24,7 @@ class Gym:
             remote_control, trainer, trainingFunction)
         self.trainingCrl.debugging_log = options["debugging_log"]
         self.gameServerAddress = None
+        self.helperPlayers = None
 
     async def start(self, lugoClient: LugoClient):
         if self.gameServerAddress:
@@ -56,7 +57,7 @@ class Gym:
                 await newChaserHelperPlayer(Team.Side.AWAY, i, gameServerAddress)
                 await delay(50)
 
-        self.helperPlayers = helper_players
+        self.helperPlayers = await helper_players(gameServerAddress)
         return self
 
 
