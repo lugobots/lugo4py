@@ -42,25 +42,11 @@ class Gym:
         )
 
     async def withZombiePlayers(self, gameServerAddress, training_bot_number=None, training_team_side=None):
-        print('Entrando na withzombie\n')
-
-        async def helper_players(gameServerAddress: str):
-            for i in range(1, 12):
-                print('AAAAAAAAAAAAA:', i)
-                if i == training_bot_number and training_team_side is not None:
-                    if training_team_side == Team.Side.HOME:
-                        await newZombieHelperPlayer(Team.Side.AWAY, i, gameServerAddress)
-                    elif training_team_side == Team.Side.AWAY:
-                        await newZombieHelperPlayer(Team.Side.HOME, i, gameServerAddress)
-                    continue
-
-                await newZombieHelperPlayer(Team.Side.HOME, i, gameServerAddress)
-                await newZombieHelperPlayer(Team.Side.AWAY, i, gameServerAddress)
-        print('self')
-        self.helperPlayers = asyncio.run(helper_players(gameServerAddress))
+        print('Entering withZombiePlayers\n')
+        self.helperPlayers = await create_helper_players(gameServerAddress, training_bot_number, training_team_side)
         return self
 
-    def withChasersPlayers(self, gameServerAddress):
+    async def withChasersPlayers(self, gameServerAddress):
         self.gameServerAddress = gameServerAddress
 
         async def helper_players(gameServerAddress):
@@ -72,6 +58,26 @@ class Gym:
 
         self.helperPlayers = helper_players
         return self
+
+
+async def create_helper_players(gameServerAddress: str, training_bot_number, training_team_side):
+    tasks = []
+    for i in range(1, 12):
+        if i == training_bot_number and training_team_side is not None:
+            if training_team_side == Team.Side.HOME:
+                tasks.append(newZombieHelperPlayer(
+                    Team.Side.AWAY, i, gameServerAddress))
+            elif training_team_side == Team.Side.AWAY:
+                tasks.append(newZombieHelperPlayer(
+                    Team.Side.HOME, i, gameServerAddress))
+            continue
+
+        tasks.append(newZombieHelperPlayer(
+            Team.Side.HOME, i, gameServerAddress))
+        tasks.append(newZombieHelperPlayer(
+            Team.Side.AWAY, i, gameServerAddress))
+
+    return await asyncio.gather(*tasks)
 
 
 async def my_on_join():
