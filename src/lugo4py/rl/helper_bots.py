@@ -6,6 +6,8 @@ from ..protos import remote_pb2 as lugo_remote_pb2
 from ..snapshot import GameSnapshotReader
 import os
 from ..loader import EnvVarLoader
+from typing import Callable, Awaitable
+
 
 PLAYER_POSITIONS = {
     1: {'Col': 0, 'Row': 1},
@@ -22,10 +24,7 @@ PLAYER_POSITIONS = {
 }
 
 
-async def newZombiePlayer(teamSide, playerNumber, gameServerAddress):
-    loop = asyncio.get_event_loop()
-    print('New Zombie')
-    promise = loop.create_future()
+async def create_bot(teamSide, playerNumber, gameServerAddress, turnHandler: RawTurnProcessor, on_join_callback: Callable[[], Awaitable[None]]):
     try:
         map = Mapper(22, 5, teamSide)
         initialRegion = map.getRegion(
@@ -38,19 +37,19 @@ async def newZombiePlayer(teamSide, playerNumber, gameServerAddress):
         os.environ["BOT_TOKEN"] = ""
 
         config = EnvVarLoader()
-
         lugoClient = NewClientFromConfig(config, initialRegion.getCenter())
-
-        async def turnHandler(orderSet: lugo_remote_pb2.OrderSet, snapshot: lugo_server_pb2.GameSnapshot) -> lugo_remote_pb2.OrderSet:
-            orderSet.setDebugMessage(
-                f"{ 'HOME' if teamSide == 0 else 'AWAY' }-{playerNumber} #{snapshot.getTurn()}")
-            return orderSet
-        print(f"Starting zombie player {playerNumber} on team {teamSide}")
-        await lugoClient.play_as_bot(turnHandler, promise.set_result)
-        print(f"Zombie player {playerNumber} on team {teamSide} finished")
+        await lugoClient.play(turnHandler, on_join_callback)
     except Exception as e:
-        promise.set_exception(e)
-    return promise
+        raise e
+
+
+async def newZombiePlayer(teamSide, playerNumber, gameServerAddress):
+    async def turnHandler(orderSet: lugo_remote_pb2.OrderSet, snapshot: lugo_server_pb2.GameSnapshot) -> lugo_remote_pb2.OrderSet:
+        orderSet.setDebugMessage(
+            f"{ 'HOME' if teamSide == 0 else 'AWAY' }-{playerNumber} #{snapshot.getTurn()}")
+        return orderSet
+
+    await create_bot(teamSide, playerNumber, gameServerAddress, turnHandler, my_on_join)
 
 
 async def newChaserHelperPlayer(teamSide, playerNumber, gameServerAddress):
@@ -71,31 +70,17 @@ async def newChaserHelperPlayer(teamSide, playerNumber, gameServerAddress):
 
 
 async def newZombieHelperPlayer(teamSide, playerNumber, gameServerAddress):
-    print('New helper zombie', teamSide, playerNumber, gameServerAddress)
-
     async def turnHandler(orderSet: lugo_server_pb2.OrderSet, snapshot: lugo_server_pb2.GameSnapshot) -> lugo_server_pb2.OrderSet:
         orderSet.setDebugMessage(
             f"{ 'HOME' if teamSide == 0 else 'AWAY' }-{playerNumber} #{snapshot.getTurn()}")
         return orderSet
-    await newCustomHelperPlayer(teamSide, playerNumber, gameServerAddress, turnHandler)
+
+    await create_bot(teamSide, playerNumber, gameServerAddress, turnHandler, my_on_join)
 
 
 async def newCustomHelperPlayer(teamSide, playerNumber, gameServerAddress, turnHandler: RawTurnProcessor):
-    try:
-        map = Mapper(22, 5, teamSide)
-        initialRegion = map.getRegion(
-            PLAYER_POSITIONS[playerNumber]['Col'], PLAYER_POSITIONS[playerNumber]['Row'])
+    await create_bot(teamSide, playerNumber, gameServerAddress, turnHandler, my_on_join)
 
-        os.environ["BOT_GRPC_URL"] = gameServerAddress
-        os.environ["BOT_GRPC_INSECURE"] = "true"
-        os.environ["BOT_TEAM"] = "HOME" if teamSide == lugo_server_pb2.Team.Side.HOME else "AWAY"
-        os.environ["BOT_NUMBER"] = str(playerNumber)
-        os.environ["BOT_TOKEN"] = ""
 
-        config = EnvVarLoader()
-
-        lugoClient = NewClientFromConfig(config, initialRegion.getCenter())
-
-        await lugoClient.play(turnHandler)
-    except Exception as e:
-        raise e
+async def my_on_join():
+    print("Client connecting to server")

@@ -13,7 +13,8 @@ from .snapshot import defineState
 
 PROTOCOL_VERSION = "1.0.0"
 
-RawTurnProcessor = Callable[[server_pb2.OrderSet, server_pb2.GameSnapshot], Awaitable[server_pb2.OrderSet]]
+RawTurnProcessor = Callable[[
+    server_pb2.OrderSet, server_pb2.GameSnapshot], Awaitable[server_pb2.OrderSet]]
 
 
 class LugoClient(server_grpc.GameServicer):
@@ -44,9 +45,9 @@ class LugoClient(server_grpc.GameServicer):
         self.callback = callback
         await self._bot_start(callback, on_join)
 
-
     async def play_as_bot(self, bot: Bot, on_join: Callable[[], None]):
         self.setReadyHandler(bot.gettingReady)
+
         async def processor(orders: server_pb2.OrderSet, snapshot: server_pb2.GameSnapshot) -> server_pb2.OrderSet:
             playerState = defineState(
                 snapshot, self.number, self.teamSide)
@@ -69,13 +70,13 @@ class LugoClient(server_grpc.GameServicer):
             return orders
         await self._bot_start(processor, on_join)
 
-
     async def _bot_start(self, processor: RawTurnProcessor, on_join: Callable[[], None]) -> None:
 
         if self.grpc_insecure:
             channel = grpc.insecure_channel(self.serverAdd)
         else:
-            channel = grpc.secure_channel(self.serverAdd, grpc.ssl_channel_credentials())
+            channel = grpc.secure_channel(
+                self.serverAdd, grpc.ssl_channel_credentials())
         try:
             grpc.channel_ready_future(channel).result(timeout=15)
         except grpc.FutureTimeoutError:
@@ -119,6 +120,7 @@ class LugoClient(server_grpc.GameServicer):
             except Exception as e:
                 print("internal error processing turn", e)
                 traceback.print_exc()
+
 
 def NewClientFromConfig(config: EnvVarLoader, initialPosition: Point) -> LugoClient:
     return LugoClient(

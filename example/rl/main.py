@@ -35,14 +35,14 @@ grpc_insecure = True
 
 async def main():
     team_side = server_pb2.Team.Side.HOME
-
+    print('main: Training bot team side = ', team_side)
     # The map will help us see the field in quadrants (called regions) instead of working with coordinates
     # The Mapper will translate the coordinates based on the side the bot is playing on
     map = Mapper(20, 10, server_pb2.Team.Side.HOME)
 
     # Our bot strategy defines our bot initial position based on its number
     initial_region = map.getRegion(5, 4)
-
+    print('\n main: Training bot map \n', initial_region.getCenter())
     # Now we can create the bot. We will use a shortcut to create the client from the config, but we could use the
     # client constructor as well
     lugo_client = LugoClient(
@@ -52,7 +52,6 @@ async def main():
         team_side,
         TRAINING_PLAYER_NUMBER,
         initial_region.getCenter())
-
     # The RemoteControl is a gRPC client that will connect to the Game Server and change the element positions
     rc = RemoteControl()
     await rc.connect(grpc_address)  # Pass address here
@@ -60,13 +59,14 @@ async def main():
     bot = MyBotTrainer(rc)
 
     # Now we can create the Gym, which will control all async work and allow us to focus on the learning part
-    gym = Gym(rc, bot, my_training_function, {"debugging_log": False})
+    gym = Gym(rc, bot, my_training_function, {"debugging_log": True})
 
     # First, starting the game server
     # If you want to train playing against another bot, then you should start the other team first.
     # If you want to train using two teams, you should start the away team, then start the training bot, and finally start the home team
     # await gym.start(lugo_client)
-    await gym.withZombiePlayers(grpc_address).start(lugo_client)
+    print('Chamando a withzombie')
+    await gym.withZombiePlayers(grpc_address, TRAINING_PLAYER_NUMBER, team_side).start(lugo_client)
     # If you want to train controlling all players, use the with_zombie_players players to create zombie players.
     # await gym.withZombiePlayers(grpc_address).start(lugo_client)
 

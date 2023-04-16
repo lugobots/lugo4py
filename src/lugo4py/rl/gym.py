@@ -23,6 +23,7 @@ class Gym:
         self.trainingCrl = TrainingCrl(
             remote_control, trainer, trainingFunction)
         self.trainingCrl.debugging_log = options["debugging_log"]
+        self.gameServerAddress = None
 
     async def start(self, lugoClient: LugoClient):
         if self.gameServerAddress:
@@ -34,23 +35,29 @@ class Gym:
             nonlocal hasStarted
             hasStarted = True
             return await self.trainingCrl.gameTurnHandler(orderSet, snapshot)
-        await lugoClient.play(play_callback)
+        await lugoClient.play(play_callback, my_on_join)
 
         asyncio.get_running_loop().call_later(
             1, lambda: self.remoteControl.resumeListening() if not hasStarted else None
         )
 
-    def withZombiePlayers(self, gameServerAddress):
-        self.gameServerAddress = gameServerAddress
+    async def withZombiePlayers(self, gameServerAddress, training_bot_number=None, training_team_side=None):
+        print('Entrando na withzombie\n')
 
-        async def helper_players(self, gameServerAddress: str):
+        async def helper_players(gameServerAddress: str):
             for i in range(1, 12):
-                await newZombieHelperPlayer(
-                    Team.Side.HOME, i, gameServerAddress)
-                await newZombieHelperPlayer(
-                    Team.Side.AWAY, i, gameServerAddress)
+                print('AAAAAAAAAAAAA:', i)
+                if i == training_bot_number and training_team_side is not None:
+                    if training_team_side == Team.Side.HOME:
+                        await newZombieHelperPlayer(Team.Side.AWAY, i, gameServerAddress)
+                    elif training_team_side == Team.Side.AWAY:
+                        await newZombieHelperPlayer(Team.Side.HOME, i, gameServerAddress)
+                    continue
 
-        self.helperPlayers = helper_players
+                await newZombieHelperPlayer(Team.Side.HOME, i, gameServerAddress)
+                await newZombieHelperPlayer(Team.Side.AWAY, i, gameServerAddress)
+        print('self')
+        self.helperPlayers = asyncio.run(helper_players(gameServerAddress))
         return self
 
     def withChasersPlayers(self, gameServerAddress):
@@ -65,3 +72,7 @@ class Gym:
 
         self.helperPlayers = helper_players
         return self
+
+
+async def my_on_join():
+    print("Client connecting to server")
