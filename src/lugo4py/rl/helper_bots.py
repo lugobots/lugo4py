@@ -43,42 +43,42 @@ async def create_bot(teamSide, playerNumber, gameServerAddress, turnHandler: Raw
         raise e
 
 
-async def newZombiePlayer(teamSide, playerNumber, gameServerAddress):
-    async def turnHandler(orderSet: lugo_remote_pb2.OrderSet, snapshot: lugo_server_pb2.GameSnapshot) -> lugo_remote_pb2.OrderSet:
-        orderSet.setDebugMessage(
-            f"{ 'HOME' if teamSide == 0 else 'AWAY' }-{playerNumber} #{snapshot.getTurn()}")
-        return orderSet
+async def zombie_turn_handler(teamSide, playerNumber, orderSet, snapshot):
+    orderSet.setDebugMessage(
+        f"{ 'HOME' if teamSide == 0 else 'AWAY' }-{playerNumber} #{snapshot.getTurn()}")
+    return orderSet
 
-    await create_bot(teamSide, playerNumber, gameServerAddress, turnHandler, my_on_join)
+
+async def chaser_turn_handler(teamSide, playerNumber, orderSet, snapshot):
+    reader = GameSnapshotReader(snapshot, teamSide)
+    orderSet.addOrders(reader.makeOrderCatch())
+    me = reader.getPlayer(teamSide, playerNumber)
+    if not me:
+        raise ValueError("did not find myself in the game")
+
+    orderSet.addOrders(reader.makeOrderMoveMaxSpeed(
+        me.getPosition(), snapshot.getBall().getPosition()))
+    orderSet.setDebugMessage(
+        f"{ 'HOME' if teamSide == 0 else 'AWAY' }-{playerNumber} #{snapshot.getTurn()} - chasing ball")
+    return orderSet
+
+
+async def newZombiePlayer(teamSide, playerNumber, gameServerAddress):
+    return await newCustomHelperPlayer(teamSide, playerNumber, gameServerAddress, zombie_turn_handler)
 
 
 async def newChaserHelperPlayer(teamSide, playerNumber, gameServerAddress):
-    async def turnHandler(orderSet: lugo_remote_pb2.OrderSet, snapshot: lugo_server_pb2.GameSnapshot) -> lugo_remote_pb2.OrderSet:
-        reader = GameSnapshotReader(snapshot, teamSide)
-        orderSet.addOrders(reader.makeOrderCatch())
-        me = reader.getPlayer(teamSide, playerNumber)
-        if not me:
-            raise ValueError("did not find myself in the game")
-
-        orderSet.addOrders(reader.makeOrderMoveMaxSpeed(
-            me.getPosition(), snapshot.getBall().getPosition()))
-        orderSet.setDebugMessage(
-            f"{ 'HOME' if teamSide == 0 else 'AWAY' }-{playerNumber} #{snapshot.getTurn()} - chasing ball")
-        return orderSet
-
-    return newCustomHelperPlayer(teamSide, playerNumber, gameServerAddress, turnHandler)
+    return await newCustomHelperPlayer(teamSide, playerNumber, gameServerAddress, chaser_turn_handler)
 
 
 async def newZombieHelperPlayer(teamSide, playerNumber, gameServerAddress):
-    async def turnHandler(orderSet: lugo_server_pb2.OrderSet, snapshot: lugo_server_pb2.GameSnapshot) -> lugo_server_pb2.OrderSet:
-        orderSet.setDebugMessage(
-            f"{ 'HOME' if teamSide == 0 else 'AWAY' }-{playerNumber} #{snapshot.getTurn()}")
-        return orderSet
-
-    await create_bot(teamSide, playerNumber, gameServerAddress, turnHandler, my_on_join)
+    return await newCustomHelperPlayer(teamSide, playerNumber, gameServerAddress, zombie_turn_handler)
 
 
-async def newCustomHelperPlayer(teamSide, playerNumber, gameServerAddress, turnHandler: RawTurnProcessor):
+async def newCustomHelperPlayer(teamSide, playerNumber, gameServerAddress, turn_handler_function):
+    async def turnHandler(orderSet: lugo_remote_pb2.OrderSet, snapshot: lugo_server_pb2.GameSnapshot) -> lugo_remote_pb2.OrderSet:
+        return await turn_handler_function(teamSide, playerNumber, orderSet, snapshot)
+
     await create_bot(teamSide, playerNumber, gameServerAddress, turnHandler, my_on_join)
 
 
