@@ -66,7 +66,8 @@ async def main():
     # If you want to train using two teams, you should start the away team, then start the training bot, and finally start the home team
     # await gym.start(lugo_client)
     print('Chamando a withzombie')
-    await gym.withZombiePlayers(grpc_address, TRAINING_PLAYER_NUMBER, team_side).start(lugo_client)
+    WithZombiePlayers = await gym.withZombiePlayers(grpc_address, TRAINING_PLAYER_NUMBER, team_side)
+    WithZombiePlayers.start(lugo_client)
     # If you want to train controlling all players, use the with_zombie_players players to create zombie players.
     # await gym.withZombiePlayers(grpc_address).start(lugo_client)
 

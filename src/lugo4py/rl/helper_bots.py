@@ -76,7 +76,7 @@ async def newZombieHelperPlayer(teamSide, playerNumber, gameServerAddress):
 
 
 async def newCustomHelperPlayer(teamSide, playerNumber, gameServerAddress, turn_handler_function):
-    async def turnHandler(orderSet: lugo_remote_pb2.OrderSet, snapshot: lugo_server_pb2.GameSnapshot) -> lugo_remote_pb2.OrderSet:
+    async def turnHandler(orderSet: lugo_server_pb2.OrderSet, snapshot: lugo_server_pb2.GameSnapshot) -> lugo_server_pb2.OrderSet:
         return await turn_handler_function(teamSide, playerNumber, orderSet, snapshot)
 
     await create_bot(teamSide, playerNumber, gameServerAddress, turnHandler, my_on_join)

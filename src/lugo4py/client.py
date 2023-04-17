@@ -1,4 +1,5 @@
 import grpc
+import time
 
 import traceback
 from typing import Callable, Awaitable
@@ -43,35 +44,42 @@ class LugoClient(server_grpc.GameServicer):
 
     async def play(self, callback: Callable[[server_pb2.GameSnapshot], server_pb2.OrderSet], on_join: Callable[[], None]):
         self.callback = callback
+        log_with_time("Starting to play")
         await self._bot_start(callback, on_join)
 
     async def play_as_bot(self, bot: Bot, on_join: Callable[[], None]):
         self.setReadyHandler(bot.gettingReady)
+        log_with_time("Playing as bot")
 
         async def processor(orders: server_pb2.OrderSet, snapshot: server_pb2.GameSnapshot) -> server_pb2.OrderSet:
             playerState = defineState(
                 snapshot, self.number, self.teamSide)
+            log_with_time(
+                f"Processing orders for player {self.number} with state {playerState}")
             if self.number == 1:
                 orders = bot.asGoalkeeper(
                     orders, snapshot, playerState)
             else:
                 if playerState == PLAYER_STATE.DISPUTING_THE_BALL:
-                    # print(f"[turn #{snapshot.turn}] will call disputing")
+                    log_with_time(
+                        f"[turn #{snapshot.turn}] will call disputing")
                     orders = bot.onDisputing(orders, snapshot)
                 elif playerState == PLAYER_STATE.DEFENDING:
-                    # print(f"[turn #{snapshot.turn}] will call defending")
+                    log_with_time(
+                        f"[turn #{snapshot.turn}] will call defending")
                     orders = bot.onDefending(orders, snapshot)
                 elif playerState == PLAYER_STATE.SUPPORTING:
-                    # print(f"[turn #{snapshot.turn}] will call supporting")
+                    log_with_time(
+                        f"[turn #{snapshot.turn}] will call supporting")
                     orders = bot.onSupporting(orders, snapshot)
                 elif playerState == PLAYER_STATE.HOLDING_THE_BALL:
-                    # print(f"[turn #{snapshot.turn}] will call holding")
+                    log_with_time(f"[turn #{snapshot.turn}] will call holding")
                     orders = bot.onHolding(orders, snapshot)
             return orders
         await self._bot_start(processor, on_join)
 
     async def _bot_start(self, processor: RawTurnProcessor, on_join: Callable[[], None]) -> None:
-
+        log_with_time("Starting bot")
         if self.grpc_insecure:
             channel = grpc.insecure_channel(self.serverAdd)
         else:
@@ -85,44 +93,45 @@ class LugoClient(server_grpc.GameServicer):
         self.channel = channel
         self._client = server_grpc.GameStub(channel)
 
-        # joint to the team
         join_request = server_pb2.JoinRequest(
             token=self.token,
             team_side=self.teamSide,
             number=self.number,
             init_position=self.init_position,
         )
-        on_join()
-        print("joint to the team")
+        await on_join()
+        log_with_time("Joint to the team")
         for snapshot in self._client.JoinATeam(join_request):
+            log_with_time(f"Snapshot state: {snapshot.state}")
             try:
                 if snapshot.state == server_pb2.GameSnapshot.State.OVER:
-                    print(f" All done! {server_pb2.GameSnapshot.State.OVER}")
+                    log_with_time(
+                        f" All done! {server_pb2.GameSnapshot.State.OVER}")
                     break
-
                 elif snapshot.state == server_pb2.GameSnapshot.State.LISTENING:
                     orders = server_pb2.OrderSet()
                     orders.turn = snapshot.turn
-
                     try:
                         orders = await processor(orders, snapshot)
                     except Exception as e:
-                        print("bot error", e)
+                        log_with_time(f"bot error: {e}")
 
                     if orders:
                         self._client.SendOrders(orders)
                     else:
-                        print(
+                        log_with_time(
                             f"[turn #{snapshot.turn}] bot did not return orders")
                 elif snapshot.state == server_pb2.GameSnapshot.State.GET_READY:
+                    log_with_time(f"[turn #{snapshot.turn}] getting ready")
                     await self.getting_ready_handler(snapshot)
 
             except Exception as e:
-                print("internal error processing turn", e)
+                log_with_time(f"internal error processing turn: {e}")
                 traceback.print_exc()
 
 
 def NewClientFromConfig(config: EnvVarLoader, initialPosition: Point) -> LugoClient:
+    log_with_time("Creating a new client from config")
     return LugoClient(
         config.getGrpcUrl(),
         config.getGrpcInsecure(),
@@ -131,3 +140,8 @@ def NewClientFromConfig(config: EnvVarLoader, initialPosition: Point) -> LugoCli
         config.getBotNumber(),
         initialPosition,
     )
+
+
+def log_with_time(msg: str):
+    current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    print(f"{current_time}: {msg}")
