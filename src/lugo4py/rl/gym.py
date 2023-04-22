@@ -79,6 +79,7 @@ def create_helper_players(gameServerAddress: str):
     for i in range(1, 12):
         print(f'PLEAYR {i}\n')
         asyncio.ensure_future(newZombieHelperPlayer(Team.Side.AWAY, i, gameServerAddress))
+        asyncio.ensure_future(newZombieHelperPlayer(Team.Side.HOME, i, gameServerAddress))
 
     return
 
