@@ -13,7 +13,7 @@ class TrainingController(ABC):
     # This method should be called whenever your need to reset the game to an initial state.
     #
     @abstractmethod
-    async def setRandomState(self):
+    async def setEnvironment(self, data):
         pass
 
     #
@@ -21,7 +21,7 @@ class TrainingController(ABC):
     # return the tensors used to feed your network.
     #
     @abstractmethod
-    async def getInputs(self):
+    def getState(self):
         pass
 
     #
@@ -55,7 +55,7 @@ class BotTrainer(ABC):
     # use the remote control client to change the game elements' position/state
     #
     @abstractmethod
-    async def createNewInitialState(self):
+    async def createNewInitialState(self, data):
         pass
 
     #
@@ -68,7 +68,7 @@ class BotTrainer(ABC):
     # @param {GameSnapshot} snapshot - The current game state
     #
     @abstractmethod
-    async def getInputs(self, snapshot: GameSnapshot):
+    async def getState(self, snapshot: GameSnapshot):
         pass
 
     #
@@ -85,7 +85,7 @@ class BotTrainer(ABC):
     #
     #
     @abstractmethod
-    async def play(self, orderSet: OrderSet, snapshot: GameSnapshot, action):
+    async def play(self, orderSet: OrderSet, snapshot: GameSnapshot, action) -> OrderSet:
         pass
 
     #
@@ -100,7 +100,7 @@ class BotTrainer(ABC):
     # @param {GameSnapshot} newSnapshot - The current game state
     #
     @abstractmethod
-    async def evaluate(previousSnapshot: GameSnapshot, newSnapshot: GameSnapshot):
+    async def evaluate(self, previousSnapshot: GameSnapshot, newSnapshot: GameSnapshot):
         pass
 
 

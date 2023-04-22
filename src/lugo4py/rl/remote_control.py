@@ -18,24 +18,40 @@ class RemoteControl:
         self.client = None
 
     async def connect(self, grpc_address: str) -> None:
-        async with grpc.aio.insecure_channel(grpc_address) as channel:
-            self.client = RemoteStub(channel)
+        channel = grpc.insecure_channel(grpc_address)
+        try:
+            grpc.channel_ready_future(channel).result(timeout=15)
+        except grpc.FutureTimeoutError:
+            raise Exception("timed out waiting to connect to the game server")
+        self.client = RemoteStub(channel)
 
     async def pauseResume(self):
         req = PauseResumeRequest()
-        return await self.client.PauseOrResume(req)
+        try:
+            return await self.client.PauseOrResume(req)
+        except Exception:
+            raise Exception("[Remote Control] Failed to pause/resume the game")
 
     async def resumeListening(self):
         req = ResumeListeningRequest()
-        return await self.client.ResumeListeningPhase(req)
+        try:
+            return self.client.ResumeListeningPhase(req)
+        except Exception:
+            raise Exception("[Remote Control] Failed to resume listening phase the game")
 
     async def nextTurn(self):
         req = NextTurnRequest()
-        return await self.client.NextTurn(req)
+        try:
+            return self.client.NextTurn(req)
+        except Exception:
+            raise Exception("[Remote Control] Failed to play to next turn")
 
     async def nextOrder(self):
         req = NextOrderRequest()
-        return await self.client.NextOrder(req)
+        try:
+            return self.client.NextOrder(req)
+        except Exception:
+            raise Exception("[Remote Control] Failed to play to next order")
 
     async def setBallProps(self, position: Point, velocity: Velocity):
         req = BallProperties(position=position, velocity=velocity)

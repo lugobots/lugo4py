@@ -10,127 +10,115 @@ def delay(ms): return asyncio.sleep(ms)
 class TrainingCrl(TrainingController):
 
     def __init__(self, remoteControl: RemoteControl, bot: BotTrainer, onReadyCallback: TrainingFunction):
-        self.remoteControl = remoteControl
+        self._gotNextState = None
+        self.previousState = None
+        self.remoteControl = remoteControl  # type: RemoteControl
+        self.onReady = onReadyCallback
         self.trainingHasStarted = False
-        self.lastSnapshot = GameSnapshot()
-
-        self.waitingForAction = False
-
+        self.lastSnapshot = None  # type: GameSnapshot
+        self.onListeningMode = False
+        self.OrderSet = None
         self.cycleSeq = 0
-
+        self.bot = bot  # type: BotTrainer
         self.debugging_log = True
         self.stopRequested = False
+        self.resumeListeningPhase = lambda action: print(
+            'resumeListeningPhase not defined yet - should wait the initialise it on the first "update" call')
 
-        self.onReady = onReadyCallback
-        self.bot = bot
 
-    async def setRandomState(self):
+    async def setEnvironment(self, data):
         self._debug('Reset state')
         try:
-            self.lastSnapshot = await self.bot.createNewInitialState()
-
+            self.lastSnapshot = await self.bot.createNewInitialState(data)
         except Exception as e:
             print('bot trainer failed to create initial state', e)
             raise e
 
-    def getInputs(self):
+    def getState(self):
         try:
             self.cycleSeq = self.cycleSeq + 1
             self._debug('get state')
-            return self.bot.getInputs(self.lastSnapshot)
+            return self.bot.getState(self.lastSnapshot)
         except Exception as e:
             print('bot trainer failed to return inputs from a particular state', e)
             raise e
 
     async def update(self, action: any):
         self._debug('UPDATE')
-        if not self.waitingForAction:
-            raise RuntimeError(
-                "faulty synchrony - got a new action when was still processing the last one")
+        if not self.onListeningMode:
+            raise ValueError('faulty synchrony - got a new action when was still processing the last one')
 
-        self.previousState = self.lastSnapshot
-        self.lastSnapshot = await self.gotNewAction(action)
+        previousState = self.lastSnapshot
+        self.OrderSet.setTurn(self.lastSnapshot.getTurn())
+        updatedOrderSet = await self.bot.play(self.OrderSet, self.lastSnapshot, action)
+
+        self._debug('got order set, passing down')
+        self.resumeListeningPhase(updatedOrderSet)
+        await delay(20)  # before calling next turn, let's wait just a bit to ensure the server got our order
+        self.lastSnapshot = await self.wait_until_next_listening_state()
+
         self._debug('got new snapshot after order has been sent')
 
-        if (self.stopRequested):
-            return {'done': True, 'reward': 0}
+        if self.stopRequested:
+            return True, 0
 
-        self._debug(
-            'update finished (turn $self.lastSnapshot.getTurn() waiting for next action')
+        # TODO: if I want to skip the net N turns? I should be able too
+        self._debug(f"update finished (turn {self.lastSnapshot.getTurn()} waiting for next action)")
         try:
-            returnDict = await self.bot.evaluate(self.previousState, self.lastSnapshot)
-            return returnDict
+            done, reward = await self.bot.evaluate(previousState, self.lastSnapshot)
+            return done, reward
         except Exception as e:
             print('bot trainer failed to evaluate game state', e)
             raise e
 
-    def _gotNextState(self, newState: GameSnapshot):
-        self._debug('No one waiting for the next state')
 
     async def gameTurnHandler(self, orderSet, snapshot):
         self._debug('new turn')
-        if self.waitingForAction:
+        if self.onListeningMode:
             raise RuntimeError(
                 "faulty synchrony - got new turn while waiting for order (check the lugo 'timer-mode')")
 
         self._gotNextState(snapshot)
 
-        return await asyncio.gather(
-            asyncio.sleep(0.1),
-            self._handleNewAction(orderSet, snapshot)
-        )
+        loop = asyncio.get_running_loop()
+        # Create a new Future object.
+        fut = loop.create_future()
+        self.OrderSet = orderSet
 
-    async def _handleNewAction(self, orderSet, snapshot):
-        if self.stopRequested:
+        def resume(updatedOrderSet):
             self._debug(
-                'stop requested - will not defined call back for new actions')
-            return orderSet
+                f'Sending new action')
+            fut.set_result(updatedOrderSet)
 
-        try:
-            newAction = await self._waitForNewAction(5000)
-            self._debug('sending new action')
-            await self._sendOrders(orderSet, snapshot, newAction)
-            self._debug('order sent, calling next turn')
-            await asyncio.sleep(0.08)
-            self._debug('RESUME NOW!')
-            await self.remoteControl.resumeListening()
-            self._debug('listening resumed')
-        except Exception as e:
-            print('failed to send the orders to the server', e)
+        self.resumeListeningPhase = resume
+        self.onListeningMode = True
 
-        return orderSet
-
-    async def _waitForNewAction(self, timeout):
-        self.waitingForAction = True
-        self._debug(
-            f'Waiting for action (training has started: {self.trainingHasStarted})')
-
-        if not self.trainingHasStarted:
+        if self.trainingHasStarted is False:
             self.onReady(self)
             self.trainingHasStarted = True
-            self._debug('The training has started')
+            self._debug(
+                f'the training has started')
+        return await fut
 
+    async def wait_until_next_listening_state(self) -> GameSnapshot:
         try:
-            newAction = await asyncio.wait_for(self.gotNewAction, timeout=timeout)
-            self.waitingForAction = False
-            return newAction
-        except asyncio.TimeoutError:
-            self.waitingForAction = False
-            self._debug('Reached maximum wait time for a new action')
-            raise
+            self.onListeningMode = False
+            loop = asyncio.get_event_loop()
+            future_turn = loop.create_future()
 
-    async def _sendOrders(self, orderSet, snapshot, newAction):
-        self.waitingForAction = False
-        self._gotNextState = lambda newState: self._debug(
-            f'Returning result for new action (snapshot of turn {newState.getTurn()})')
-        self._debug(
-            f'Sending order for turn {snapshot.getTurn()} based on action')
-        orderSet.setTurn(self.lastSnapshot.getTurn())
-        await self.bot.play(orderSet, snapshot, newAction)
+            self._gotNextState = lambda newGameSnapshot: future_turn.set_result(newGameSnapshot)
+
+            self._debug(
+                f'resumeListening: ${self.lastSnapshot.getTurn()}')
+            await self.remoteControl.resumeListening()
+            return await future_turn
+        except Exception:
+            self._debug('failed to send the orders to the server')
+            raise
 
     def stop(self):
         self.stopRequested = True
-        self.remoteControl.stop()
+        # self.remoteControl.stop()
 
     def _debug(self, message: str):
         if self.debugging_log:

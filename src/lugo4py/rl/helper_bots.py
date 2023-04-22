@@ -1,13 +1,12 @@
 import asyncio
 from ..mapper import Mapper
-from ..client import NewClientFromConfig, RawTurnProcessor
+from ..client import NewClientFromConfig, RawTurnProcessor, LugoClient
 from ..protos import server_pb2 as lugo_server_pb2
 from ..protos import remote_pb2 as lugo_remote_pb2
 from ..snapshot import GameSnapshotReader
 import os
 from ..loader import EnvVarLoader
 from typing import Callable, Awaitable
-
 
 PLAYER_POSITIONS = {
     1: {'Col': 0, 'Row': 1},
@@ -24,62 +23,79 @@ PLAYER_POSITIONS = {
 }
 
 
-async def create_bot(teamSide, playerNumber, gameServerAddress, turnHandler: RawTurnProcessor, on_join_callback: Callable[[], Awaitable[None]]):
-    try:
-        map = Mapper(22, 5, teamSide)
-        initialRegion = map.getRegion(
-            PLAYER_POSITIONS[playerNumber]['Col'], PLAYER_POSITIONS[playerNumber]['Row'])
-
-        os.environ["BOT_GRPC_URL"] = gameServerAddress
-        os.environ["BOT_GRPC_INSECURE"] = "true"
-        os.environ["BOT_TEAM"] = "HOME" if teamSide == lugo_server_pb2.Team.Side.HOME else "AWAY"
-        os.environ["BOT_NUMBER"] = str(playerNumber)
-        os.environ["BOT_TOKEN"] = ""
-
-        config = EnvVarLoader()
-        lugoClient = NewClientFromConfig(config, initialRegion.getCenter())
-        await lugoClient.play(turnHandler, on_join_callback)
-    except Exception as e:
-        raise e
-
-
-async def zombie_turn_handler(teamSide, playerNumber, orderSet, snapshot):
-    orderSet.setDebugMessage(
-        f"{ 'HOME' if teamSide == 0 else 'AWAY' }-{playerNumber} #{snapshot.getTurn()}")
-    return orderSet
-
-
-async def chaser_turn_handler(teamSide, playerNumber, orderSet, snapshot):
-    reader = GameSnapshotReader(snapshot, teamSide)
-    orderSet.addOrders(reader.makeOrderCatch())
-    me = reader.getPlayer(teamSide, playerNumber)
+async def chaser_turn_handler(team_side, player_number, order_set, snapshot):
+    reader = GameSnapshotReader(snapshot, team_side)
+    order_set.addOrders(reader.makeOrderCatch())
+    me = reader.getPlayer(team_side, player_number)
     if not me:
         raise ValueError("did not find myself in the game")
 
-    orderSet.addOrders(reader.makeOrderMoveMaxSpeed(
+    order_set.addOrders(reader.makeOrderMoveMaxSpeed(
         me.getPosition(), snapshot.getBall().getPosition()))
-    orderSet.setDebugMessage(
-        f"{ 'HOME' if teamSide == 0 else 'AWAY' }-{playerNumber} #{snapshot.getTurn()} - chasing ball")
-    return orderSet
+    order_set.setDebugMessage(
+        f"{'HOME' if team_side == 0 else 'AWAY'}-{player_number} #{snapshot.getTurn()} - chasing ball")
+    return order_set
 
 
-async def newZombiePlayer(teamSide, playerNumber, gameServerAddress):
-    return await newCustomHelperPlayer(teamSide, playerNumber, gameServerAddress, zombie_turn_handler)
+def fire_and_forget(f):
+    def wrapped(*args, **kwargs):
+        return asyncio.get_event_loop().run_in_executor(None, f, *args, *kwargs)
+
+    return wrapped
 
 
-async def newChaserHelperPlayer(teamSide, playerNumber, gameServerAddress):
-    return await newCustomHelperPlayer(teamSide, playerNumber, gameServerAddress, chaser_turn_handler)
+def background(f):
+    from functools import wraps
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        loop = asyncio.get_event_loop()
+        if callable(f):
+            return loop.run_in_executor(None, f, *args, **kwargs)
+        else:
+            raise TypeError('Task must be a callable')
+
+    return wrapped
 
 
-async def newZombieHelperPlayer(teamSide, playerNumber, gameServerAddress):
-    return await newCustomHelperPlayer(teamSide, playerNumber, gameServerAddress, zombie_turn_handler)
+@background
+async def newZombieHelperPlayer(team_side, player_number, game_server_address):
+    print(f'New ZOOOOOMBIE {team_side} and {player_number}\n')
+
+    async def zombie_turn_handler(order_set, snapshot):
+        order_set.setDebugMessage(
+            f"{'HOME' if team_side == 0 else 'AWAY'}-{player_number} #{snapshot.getTurn()}")
+        return order_set
+
+    return await newCustomHelperPlayer(team_side, player_number, game_server_address, zombie_turn_handler)
 
 
-async def newCustomHelperPlayer(teamSide, playerNumber, gameServerAddress, turn_handler_function):
-    async def turnHandler(orderSet: lugo_server_pb2.OrderSet, snapshot: lugo_server_pb2.GameSnapshot) -> lugo_server_pb2.OrderSet:
-        return await turn_handler_function(teamSide, playerNumber, orderSet, snapshot)
+async def newChaserHelperPlayer(team_side, player_number, game_server_address):
+    return await newCustomHelperPlayer(team_side, player_number, game_server_address, chaser_turn_handler)
 
-    await create_bot(teamSide, playerNumber, gameServerAddress, turnHandler, my_on_join)
+
+async def newCustomHelperPlayer(team_side, player_number, game_server_address, turn_handler_function):
+    try:
+        print(f'Creating {team_side} and {player_number}\n')
+        initial_region = Mapper(22, 5, team_side).getRegion(
+            PLAYER_POSITIONS[player_number]['Col'], PLAYER_POSITIONS[player_number]['Row'])
+
+        print(f'New cliet {team_side} and {player_number}\n')
+        lugo_client = LugoClient(
+            game_server_address,
+            True,
+            "",
+            team_side,
+            player_number,
+            initial_region.getCenter(),
+        )
+
+        async def muted():
+            print("+++")
+
+        print(f'Vai connectar {team_side} and {player_number}\n')
+        await lugo_client.play(turn_handler_function, muted)
+    except Exception as e:
+        raise e
 
 
 async def my_on_join():

@@ -1,5 +1,6 @@
 import random
-from .my_bot import MyBotTrainer, TRAINING_PLAYER_NUMBER
+
+from example.rl.my_bot import MyBotTrainer, TRAINING_PLAYER_NUMBER
 from src.lugo4py.protos import server_pb2
 from src.lugo4py.rl.training_controller import TrainingController
 from src.lugo4py.rl.gym import Gym
@@ -12,18 +13,6 @@ import grpc
 import asyncio
 import os
 from src.lugo4py.loader import EnvVarLoader
-
-
-def set_environment_variables():
-    os.environ["BOT_GRPC_URL"] = "localhost:5000"
-    os.environ["BOT_GRPC_INSECURE"] = "true"
-    os.environ["BOT_NUMBER"] = str(TRAINING_PLAYER_NUMBER)
-    os.environ["BOT_TEAM"] = "home"
-
-
-set_environment_variables()
-
-env_loader = EnvVarLoader()
 
 # Training settings
 train_iterations = 50
@@ -67,7 +56,8 @@ async def main():
     # await gym.start(lugo_client)
     print('Chamando a withzombie')
     WithZombiePlayers = await gym.withZombiePlayers(grpc_address, TRAINING_PLAYER_NUMBER, team_side)
-    WithZombiePlayers.start(lugo_client)
+    print('=============+++++++')
+    await WithZombiePlayers.start(lugo_client)
     # If you want to train controlling all players, use the with_zombie_players players to create zombie players.
     # await gym.withZombiePlayers(grpc_address).start(lugo_client)
 
@@ -95,10 +85,10 @@ async def my_training_function(training_ctrl: TrainingController):
     for i in range(train_iterations):
         try:
             scores.append(0)
-            await training_ctrl.set_environment({"iteration": i})
+            await training_ctrl.setEnvironment({"iteration": i})
 
             for j in range(steps_per_iteration):
-                sensors = await training_ctrl.get_state()
+                sensors = await training_ctrl.getState()
 
                 # The sensors would feed our training model, which would return the next action
                 action = possible_actions[random.randint(

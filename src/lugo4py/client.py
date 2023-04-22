@@ -42,7 +42,7 @@ class LugoClient(server_grpc.GameServicer):
     def setReadyHandler(self, newReadyHandler):
         self.getting_ready_handler = newReadyHandler
 
-    async def play(self, callback: Callable[[server_pb2.GameSnapshot], server_pb2.OrderSet], on_join: Callable[[], None]):
+    async def play(self, callback: Callable[[server_pb2.GameSnapshot], server_pb2.OrderSet], on_join: Callable[[], Awaitable[None]]):
         self.callback = callback
         log_with_time("Starting to play")
         await self._bot_start(callback, on_join)
@@ -78,7 +78,7 @@ class LugoClient(server_grpc.GameServicer):
             return orders
         await self._bot_start(processor, on_join)
 
-    async def _bot_start(self, processor: RawTurnProcessor, on_join: Callable[[], None]) -> None:
+    async def _bot_start(self, processor: RawTurnProcessor, on_join: Callable[[], Awaitable[None]]) -> None:
         log_with_time("Starting bot")
         if self.grpc_insecure:
             channel = grpc.insecure_channel(self.serverAdd)
