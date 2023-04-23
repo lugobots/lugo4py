@@ -41,20 +41,26 @@ logger.info(
 executor = ThreadPoolExecutor()
 
 
+# make a gprc call with a timeout
 async def call_with_timeout(client, join_request, timeout):
     try:
+        # Create a future to run the grpc call in a thread pool executor
         future = executor.submit(
             next, client.JoinATeam(join_request).__iter__())
+        # use asyncio.wait to wait for the future to complete or the timeout to occur
         done, pending = await asyncio.wait(
             {asyncio.wrap_future(future)}, timeout=timeout, return_when=asyncio.FIRST_COMPLETED
         )
         if not done:
+            # if the timeout occurred, raise an error
             raise asyncio.TimeoutError()
+        # Returns the result of the future
         return done.pop().result()
     except asyncio.TimeoutError:
         logger.error("RPC call timed out")
     except Exception as e:
         logger.error(f"RPC call error: {e}")
+    # If there was an error, return None
     return None
 
 
