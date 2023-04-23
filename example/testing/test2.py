@@ -6,6 +6,28 @@ from src.lugo4py.protos import physics_pb2
 import os
 import grpc
 from concurrent.futures import ThreadPoolExecutor
+from src.lugo4py.stub import Bot
+
+
+class KeepStoppedBot(Bot):
+    async def gettingReady(self, orders, snapshot):
+        return orders
+
+    async def asGoalkeeper(self, orders, snapshot, playerState):
+        return orders
+
+    async def onDisputing(self, orders, snapshot):
+        return orders
+
+    async def onDefending(self, orders, snapshot):
+        return orders
+
+    async def onSupporting(self, orders, snapshot):
+        return orders
+
+    async def onHolding(self, orders, snapshot):
+        return orders
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -74,14 +96,14 @@ async def connect_and_play_bot(client, initial_position, team_side, token, bot_n
             logger.error(f"internal error processing turn: {e}")
 
 
-async def create_and_play_client(client, initial_position, team_side, token, bot_number):
+async def create_and_play_client(client, initial_position, team_side, token, bot_number, bot):
     logger.info(f"Creating client {bot_number}")
 
     async def on_join():
         logger.info(f"Bot {bot_number} joined the team.")
 
     async def turn_processor(orders, snapshot):
-        pass
+        return await bot.process_turn(orders, snapshot)
 
     logger.info(f"Bot {bot_number} is starting to play")
     await connect_and_play_bot(client, initial_position, team_side, token, bot_number, on_join, turn_processor)
@@ -102,9 +124,37 @@ async def create_players(client, num_players, token):
                             [physics_pb2.Point(x=player_x, y=y)
                              for y in y_positions]
 
+        keep_stopped_bot = KeepStoppedBot()
+
         for i, position in enumerate(initial_positions, start=1):
             task = asyncio.create_task(create_and_play_client(
-                client, position, team_side, token, i))
+                client, position, team_side, token, i, keep_stopped_bot))
+            tasks.append(task)
+
+    logger.info("Gathering tasks")
+    clients = await asyncio.gather(*tasks)
+    logger.info("Tasks gathered")
+
+    return clients
+
+    team_sides = [server_pb2.Team.Side.HOME, server_pb2.Team.Side.AWAY]
+    y_positions = [500 + (i * 1000) for i in range(num_players - 1)]
+
+    tasks = []
+
+    for team_side in team_sides:
+        goalkeeper_y = 5000
+        goalkeeper_x = 0 if team_side == server_pb2.Team.Side.HOME else 20000
+        player_x = 5000 if team_side == server_pb2.Team.Side.HOME else 15000
+        initial_positions = [physics_pb2.Point(x=goalkeeper_x, y=goalkeeper_y)] + \
+                            [physics_pb2.Point(x=player_x, y=y)
+                             for y in y_positions]
+
+        keep_stopped_bot = KeepStoppedBot()
+
+        for i, position in enumerate(initial_positions, start=1):
+            task = asyncio.create_task(create_and_play_client(
+                client, position, team_side, token, i, keep_stopped_bot))
             tasks.append(task)
 
     logger.info("Gathering tasks")
