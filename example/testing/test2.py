@@ -5,24 +5,35 @@ from src.lugo4py.protos import server_pb2_grpc as server_grpc
 from src.lugo4py.protos import physics_pb2
 import os
 import grpc
+from concurrent.futures import ThreadPoolExecutor
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 grpc_url = 'localhost:5000'
 grpc_insecure = True
-team_side = server_pb2.Team.Side.HOME
 
 logger.info(
-    f"grpc_url: {grpc_url}, grpc_insecure: {grpc_insecure}, team_side: {team_side}")
+    f"grpc_url: {grpc_url}, grpc_insecure: {grpc_insecure}")
+
+executor = ThreadPoolExecutor()
 
 
-async def call_with_timeout(rpc_call, timeout):
+async def call_with_timeout(client, join_request, timeout):
     try:
-        return await asyncio.wait_for(rpc_call, timeout=timeout)
-    except TimeoutError:
-        # handle the timeout here
-        return None
+        future = executor.submit(
+            next, client.JoinATeam(join_request).__iter__())
+        done, pending = await asyncio.wait(
+            {asyncio.wrap_future(future)}, timeout=timeout, return_when=asyncio.FIRST_COMPLETED
+        )
+        if not done:
+            raise asyncio.TimeoutError()
+        return done.pop().result()
+    except asyncio.TimeoutError:
+        logger.error("RPC call timed out")
+    except Exception as e:
+        logger.error(f"RPC call error: {e}")
+    return None
 
 
 async def connect_and_play_bot(client, initial_position, team_side, token, bot_number, on_join_callback, turn_processor_callback):
@@ -37,11 +48,11 @@ async def connect_and_play_bot(client, initial_position, team_side, token, bot_n
     await on_join_callback()
 
     while True:
-        snapshot = await call_with_timeout(client.JoinATeam(join_request).__iter__().__next__(), timeout=5)
-
+        snapshot = await call_with_timeout(client, join_request, timeout=10)
+        await asyncio.sleep(0.1)
         if snapshot is None:
-            logger.error("Connection timed out")
-            break
+            logger.error("Error connecting to the server, retrying...")
+            continue  # Retry the connection
 
         try:
             if snapshot.state == server_pb2.GameSnapshot.State.OVER:
@@ -77,16 +88,24 @@ async def create_and_play_client(client, initial_position, team_side, token, bot
     logger.info(f"Bot {bot_number} started playing")
 
 
-async def create_players(client, team_side, num_players, token):
-    y_positions = [500 + (i * 1000) for i in range(num_players)]
-    initial_positions = [physics_pb2.Point(x=3000, y=y) for y in y_positions]
+async def create_players(client, num_players, token):
+    team_sides = [server_pb2.Team.Side.HOME, server_pb2.Team.Side.AWAY]
+    y_positions = [500 + (i * 1000) for i in range(num_players - 1)]
 
     tasks = []
 
-    for i, position in enumerate(initial_positions, start=1):
-        task = asyncio.create_task(create_and_play_client(
-            client, position, team_side, token, i))
-        tasks.append(task)
+    for team_side in team_sides:
+        goalkeeper_y = 5000
+        goalkeeper_x = 0 if team_side == server_pb2.Team.Side.HOME else 20000
+        player_x = 5000 if team_side == server_pb2.Team.Side.HOME else 15000
+        initial_positions = [physics_pb2.Point(x=goalkeeper_x, y=goalkeeper_y)] + \
+                            [physics_pb2.Point(x=player_x, y=y)
+                             for y in y_positions]
+
+        for i, position in enumerate(initial_positions, start=1):
+            task = asyncio.create_task(create_and_play_client(
+                client, position, team_side, token, i))
+            tasks.append(task)
 
     logger.info("Gathering tasks")
     clients = await asyncio.gather(*tasks)
@@ -106,10 +125,11 @@ async def main():
 
     client = server_grpc.GameStub(channel)
 
-    clients = await create_players(client, team_side, num_players, "")
-
+    clients = await create_players(client, num_players, "")
+    await asyncio.sleep(10)
     # Waits for all clients to complete their tasks
     await asyncio.gather(*(client.wait_for_done() for clients in clients))
     logger.info("All clients completed their tasks")
+
 
 asyncio.run(main())
