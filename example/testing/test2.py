@@ -137,32 +137,6 @@ async def create_players(client, num_players, token):
 
     return clients
 
-    team_sides = [server_pb2.Team.Side.HOME, server_pb2.Team.Side.AWAY]
-    y_positions = [500 + (i * 1000) for i in range(num_players - 1)]
-
-    tasks = []
-
-    for team_side in team_sides:
-        goalkeeper_y = 5000
-        goalkeeper_x = 0 if team_side == server_pb2.Team.Side.HOME else 20000
-        player_x = 5000 if team_side == server_pb2.Team.Side.HOME else 15000
-        initial_positions = [physics_pb2.Point(x=goalkeeper_x, y=goalkeeper_y)] + \
-                            [physics_pb2.Point(x=player_x, y=y)
-                             for y in y_positions]
-
-        keep_stopped_bot = KeepStoppedBot()
-
-        for i, position in enumerate(initial_positions, start=1):
-            task = asyncio.create_task(create_and_play_client(
-                client, position, team_side, token, i, keep_stopped_bot))
-            tasks.append(task)
-
-    logger.info("Gathering tasks")
-    clients = await asyncio.gather(*tasks)
-    logger.info("Tasks gathered")
-
-    return clients
-
 
 async def main():
     num_players = 11
