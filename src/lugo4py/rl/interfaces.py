@@ -13,7 +13,7 @@ class TrainingController(ABC):
     # This method should be called whenever your need to reset the game to an initial state.
     #
     @abstractmethod
-    async def setEnvironment(self, data):
+    def setEnvironment(self, data):
         pass
 
     #
@@ -31,14 +31,14 @@ class TrainingController(ABC):
     # @returns {Promise<{reward: number, done: boolean}>}
     #
     @abstractmethod
-    async def update(self, action):
+    def update(self, action):
         pass
     #
     # Stops the training
     #
 
     @abstractmethod
-    async def stop(self):
+    def stop(self):
         pass
 #
 # The BotTrainer is used by the Gym class to play the game as a bot and to control the game state when needed.
@@ -55,7 +55,7 @@ class BotTrainer(ABC):
     # use the remote control client to change the game elements' position/state
     #
     @abstractmethod
-    async def createNewInitialState(self, data):
+    def createNewInitialState(self, data):
         pass
 
     #
@@ -68,7 +68,7 @@ class BotTrainer(ABC):
     # @param {GameSnapshot} snapshot - The current game state
     #
     @abstractmethod
-    async def getState(self, snapshot: GameSnapshot):
+    def getState(self, snapshot: GameSnapshot):
         pass
 
     #
@@ -85,7 +85,7 @@ class BotTrainer(ABC):
     #
     #
     @abstractmethod
-    async def play(self, orderSet: OrderSet, snapshot: GameSnapshot, action) -> OrderSet:
+    def play(self, orderSet: OrderSet, snapshot: GameSnapshot, action) -> OrderSet:
         pass
 
     #
@@ -100,8 +100,8 @@ class BotTrainer(ABC):
     # @param {GameSnapshot} newSnapshot - The current game state
     #
     @abstractmethod
-    async def evaluate(self, previousSnapshot: GameSnapshot, newSnapshot: GameSnapshot):
+    def evaluate(self, previousSnapshot: GameSnapshot, newSnapshot: GameSnapshot):
         pass
 
 
-TrainingFunction = Callable[[TrainingController], Awaitable[None]]
+TrainingFunction = Callable[[TrainingController], None]

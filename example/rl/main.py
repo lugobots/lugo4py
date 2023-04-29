@@ -1,5 +1,6 @@
 import random
-
+import sys
+import signal
 from example.rl.my_bot import MyBotTrainer, TRAINING_PLAYER_NUMBER
 from src.lugo4py.protos import server_pb2
 from src.lugo4py.rl.training_controller import TrainingController
@@ -21,8 +22,49 @@ steps_per_iteration = 240
 grpc_address = "localhost:5000"
 grpc_insecure = True
 
+def my_training_function(training_ctrl: TrainingController):
+    print("Let's train")
 
-async def main(executor):
+    possible_actions = [
+        DIRECTION.FORWARD,
+        DIRECTION.BACKWARD,
+        DIRECTION.LEFT,
+        DIRECTION.RIGHT,
+        DIRECTION.BACKWARD_LEFT,
+        DIRECTION.BACKWARD_RIGHT,
+        DIRECTION.FORWARD_RIGHT,
+        DIRECTION.FORWARD_LEFT,
+    ]
+    scores = []
+    for i in range(train_iterations):
+        try:
+            scores.append(0)
+            training_ctrl.setEnvironment({"iteration": i})
+
+            for j in range(steps_per_iteration):
+                sensors = training_ctrl.getState()
+
+                # The sensors would feed our training model, which would return the next action
+                action = possible_actions[random.randint(
+                    0, len(possible_actions) - 1)]
+
+                # Then we pass the action to our update method
+                reward, done = training_ctrl.update(action)
+                # Now we should reward our model with the reward value
+                scores[i] += reward
+                if done:
+                    # No more steps
+                    print(f"End of train_iteration {i}, score:", scores[i])
+                    break
+
+        except Exception as e:
+            print("Error:", e)
+
+    training_ctrl.stop()
+    print("Training is over, scores:", scores)
+
+if __name__ == "__main__":
+
     team_side = server_pb2.Team.Side.HOME
     print('main: Training bot team side = ', team_side)
     # The map will help us see the field in quadrants (called regions) instead of working with coordinates
@@ -40,12 +82,11 @@ async def main(executor):
         "",
         team_side,
         TRAINING_PLAYER_NUMBER,
-        initial_region.getCenter(),
-        executor
+        initial_region.getCenter()
     )
     # The RemoteControl is a gRPC client that will connect to the Game Server and change the element positions
     rc = RemoteControl()
-    await rc.connect(grpc_address)  # Pass address here
+    rc.connect(grpc_address)  # Pass address here
 
     bot = MyBotTrainer(rc)
 
@@ -57,9 +98,21 @@ async def main(executor):
     # If you want to train using two teams, you should start the away team, then start the training bot, and finally start the home team
     # await gym.start(lugo_client)
     print('Chamando a withzombie')
-    WithZombiePlayers = await gym.withZombiePlayers(grpc_address, TRAINING_PLAYER_NUMBER, team_side)
+    WithZombiePlayers = gym.withZombiePlayers(grpc_address)
     print('=============+++++++')
-    await WithZombiePlayers.start(lugo_client, executor)
+    executor = ThreadPoolExecutor(22)
+    WithZombiePlayers.start(lugo_client, executor)
+
+    def signal_handler(sig, frame):
+        print("Stop requested")
+        lugo_client.stop()
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, signal_handler)
+
+    lugo_client.wait()
+
+
     # If you want to train controlling all players, use the with_zombie_players players to create zombie players.
     # await gym.withZombiePlayers(grpc_address).start(lugo_client)
 
@@ -68,49 +121,3 @@ async def main(executor):
 
     # If you want to train against bots chasing the ball, you can use this helper
     # await gym.with_chasers_players(grpc_address).start(lugo_client)
-
-
-async def my_training_function(training_ctrl: TrainingController):
-    print("Let's train")
-
-    possible_actions = [
-        DIRECTION.FORWARD,
-        DIRECTION.BACKWARD,
-        DIRECTION.LEFT,
-        DIRECTION.RIGHT,
-        DIRECTION.BACKWARD_LEFT,
-        DIRECTION.BACKWARD_RIGHT,
-        DIRECTION.FORWARD_RIGHT,
-        DIRECTION.FORWARD_LEFT,
-    ]
-    scores = []
-    for i in range(train_iterations):
-        try:
-            scores.append(0)
-            await training_ctrl.setEnvironment({"iteration": i})
-
-            for j in range(steps_per_iteration):
-                sensors = await training_ctrl.getState()
-
-                # The sensors would feed our training model, which would return the next action
-                action = possible_actions[random.randint(
-                    0, len(possible_actions) - 1)]
-
-                # Then we pass the action to our update method
-                reward, done = await training_ctrl.update(action)
-                # Now we should reward our model with the reward value
-                scores[i] += reward
-                if done:
-                    # No more steps
-                    print(f"End of train_iteration {i}, score:", scores[i])
-                    break
-
-        except Exception as e:
-            print("Error:", e)
-
-    await training_ctrl.stop()
-    print("Training is over, scores:", scores)
-
-if __name__ == "__main__":
-    executor = ThreadPoolExecutor()
-    asyncio.run(main(executor))

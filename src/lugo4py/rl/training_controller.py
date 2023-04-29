@@ -2,15 +2,17 @@ import asyncio
 from .remote_control import RemoteControl
 from .interfaces import TrainingController, BotTrainer, TrainingFunction
 from ..protos.server_pb2 import GameSnapshot, OrderSet
+import threading
+
+import time
 
 
-def delay(ms): return asyncio.sleep(ms)
 
 
 class TrainingCrl(TrainingController):
 
     def __init__(self, remoteControl: RemoteControl, bot: BotTrainer, onReadyCallback: TrainingFunction):
-        self._gotNextState = None
+        self._gotNextState = lambda snapshot: print("got first snapshot")
         self.previousState = None
         self.remoteControl = remoteControl  # type: RemoteControl
         self.onReady = onReadyCallback
@@ -25,13 +27,12 @@ class TrainingCrl(TrainingController):
         self.resumeListeningPhase = lambda action: print(
             'resumeListeningPhase not defined yet - should wait the initialise it on the first "update" call')
 
-
-    async def setEnvironment(self, data):
+    def setEnvironment(self, data):
         self._debug('Reset state')
         try:
-            self.lastSnapshot = await self.bot.createNewInitialState(data)
+            self.lastSnapshot = self.bot.createNewInitialState(data)
         except Exception as e:
-            print('bot trainer failed to create initial state', e)
+            print('bot trainer failed to create initial state: ', e)
             raise e
 
     def getState(self):
@@ -43,36 +44,41 @@ class TrainingCrl(TrainingController):
             print('bot trainer failed to return inputs from a particular state', e)
             raise e
 
-    async def update(self, action: any):
+    def update(self, action: any):
         self._debug('UPDATE')
         if not self.onListeningMode:
             raise ValueError('faulty synchrony - got a new action when was still processing the last one')
 
-        previousState = self.lastSnapshot
-        self.OrderSet.setTurn(self.lastSnapshot.getTurn())
-        updatedOrderSet = await self.bot.play(self.OrderSet, self.lastSnapshot, action)
-
-        self._debug('got order set, passing down')
-        self.resumeListeningPhase(updatedOrderSet)
-        await delay(20)  # before calling next turn, let's wait just a bit to ensure the server got our order
-        self.lastSnapshot = await self.wait_until_next_listening_state()
-
-        self._debug('got new snapshot after order has been sent')
-
-        if self.stopRequested:
-            return True, 0
-
-        # TODO: if I want to skip the net N turns? I should be able too
-        self._debug(f"update finished (turn {self.lastSnapshot.getTurn()} waiting for next action)")
         try:
-            done, reward = await self.bot.evaluate(previousState, self.lastSnapshot)
+            previousState = self.lastSnapshot
+            self.OrderSet.turn = self.lastSnapshot.turn
+            updatedOrderSet = self.bot.play(self.OrderSet, self.lastSnapshot, action)
+
+            self._debug('got order set, passing down')
+            self.resumeListeningPhase(updatedOrderSet)
+            #time.sleep(2.4)  # before calling next turn, let's wait just a bit to ensure the server got our order
+            self.lastSnapshot = self.wait_until_next_listening_state()
+
+            self._debug('got new snapshot after order has been sent')
+
+            if self.stopRequested:
+                return True, 0
+
+            # TODO: if I want to skip the net N turns? I should be able too
+            self._debug(f"update finished (turn {self.lastSnapshot.turn} waiting for next action)")
+        except Exception as e:
+            print(f"MUUUUU {self.lastSnapshot.turn}")
+            print('failed send new action to the server: ', e)
+            raise e
+
+        try:
+            done, reward = self.bot.evaluate(previousState, self.lastSnapshot)
             return done, reward
         except Exception as e:
             print('bot trainer failed to evaluate game state', e)
             raise e
 
-
-    async def gameTurnHandler(self, orderSet, snapshot):
+    def gameTurnHandler(self, order_set, snapshot):
         self._debug('new turn')
         if self.onListeningMode:
             raise RuntimeError(
@@ -80,15 +86,19 @@ class TrainingCrl(TrainingController):
 
         self._gotNextState(snapshot)
 
-        loop = asyncio.get_running_loop()
+        # loop = asyncio.get_running_loop()
         # Create a new Future object.
-        fut = loop.create_future()
-        self.OrderSet = orderSet
+        # fut = loop.create_future()
+        self.OrderSet = order_set
 
-        def resume(updatedOrderSet):
-            self._debug(
-                f'Sending new action')
-            fut.set_result(updatedOrderSet)
+        waiter = threading.Event()
+        new_order_set = None
+
+        def resume(updated_order_set):
+            nonlocal new_order_set
+            self._debug(f'Sending new action')
+            new_order_set = updated_order_set
+            waiter.set()
 
         self.resumeListeningPhase = resume
         self.onListeningMode = True
@@ -98,20 +108,30 @@ class TrainingCrl(TrainingController):
             self.trainingHasStarted = True
             self._debug(
                 f'the training has started')
-        return await fut
 
-    async def wait_until_next_listening_state(self) -> GameSnapshot:
+        waiter.wait(timeout=5)
+        return new_order_set
+
+    def wait_until_next_listening_state(self) -> GameSnapshot:
         try:
             self.onListeningMode = False
-            loop = asyncio.get_event_loop()
-            future_turn = loop.create_future()
+            waiter = threading.Event()
 
-            self._gotNextState = lambda newGameSnapshot: future_turn.set_result(newGameSnapshot)
+            new_snapshot = None
+            def resume(newGameSnapshot):
+                nonlocal new_snapshot
+                new_snapshot = newGameSnapshot
+                waiter.set()
 
-            self._debug(
-                f'resumeListening: ${self.lastSnapshot.getTurn()}')
-            await self.remoteControl.resumeListening()
-            return await future_turn
+            self._gotNextState = resume
+
+
+            self.remoteControl.resumeListening()
+            waiter.wait(timeout=5)
+            print(f"wAHTASA?S?A?S?AS {new_snapshot} ")
+            self._debug(f'resumeListening++++++++++++++++++++++++++++++++++++: {new_snapshot.turn}')
+
+            return new_snapshot
         except Exception:
             self._debug('failed to send the orders to the server')
             raise

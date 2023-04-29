@@ -212,8 +212,8 @@ class GameSnapshotReader:
         diffVector = geo.subVector(ballExpectedDirection, ball.getVelocity().getDirection())
 
         newVelocity = server_pb2.Velocity()
-        newVelocity.setSpeed(speed)
-        newVelocity.setDirection(geo.normalize(diffVector))
+        newVelocity.speed = speed
+        newVelocity.direction = geo.normalize(diffVector)
         
         kick = server_pb2.Order.Kick()
         kick.Velocity = newVelocity 

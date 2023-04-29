@@ -1,12 +1,15 @@
 import random
 from typing import Any, Dict, Union, List, Optional
-from src.lugo4py.snapshot import GameSnapshotReader, Mapper, Direction, Region
+from src.lugo4py.snapshot import GameSnapshotReader, Mapper, DIRECTION, Region
+from src.lugo4py import orientation
+
 from src.lugo4py.protos import server_pb2 as Lugo
 from src.lugo4py.protos.server_pb2 import GameSnapshot
-from src.lugo4py.protos import physics_pb2 as Physics
+from src.lugo4py.protos import physics_pb2
+from src.lugo4py import geo
+
 from src.lugo4py.rl.remote_control import RemoteControl
 import time
-
 
 TRAINING_PLAYER_NUMBER = 5
 
@@ -16,50 +19,59 @@ class MyBotTrainer:
         self.remote_control = remote_control
         self.Mapper = None
 
-    async def createNewInitialState(self, data: Any) -> GameSnapshot:
+    def createNewInitialState(self, data: Any):
         self.Mapper = Mapper(20, 10, Lugo.Team.Side.HOME)
 
         for i in range(1, 12):
-            await self._randomPlayerPos(self.Mapper, Lugo.Team.Side.HOME, i)
-            await self._randomPlayerPos(self.Mapper, Lugo.Team.Side.AWAY, i)
+            self._randomPlayerPos(self.Mapper, Lugo.Team.Side.HOME, i)
+            self._randomPlayerPos(self.Mapper, Lugo.Team.Side.AWAY, i)
 
-        random_velocity = self._create_velocity(0, Direction.NORTH)
+        random_velocity = self._create_velocity(0, orientation.NORTH)
         pos = self.Mapper.getRegion(10, random.randint(2, 7)).getCenter()
-        await self.remote_control.setPlayerProps(Lugo.Team.Side.HOME, TRAINING_PLAYER_NUMBER, pos, random_velocity)
+        self.remote_control.setPlayerProps(Lugo.Team.Side.HOME, TRAINING_PLAYER_NUMBER, pos, random_velocity)
 
         ball_pos = self.Mapper.getRegion(0, 0).getCenter()
-        ball_velocity = self._create_velocity(0, Direction.NORTH)
-        await self.remote_control.setTurn(1)
-        return await self.remote_control.setBallProps(ball_pos, ball_velocity)
+        ball_velocity = self._create_velocity(0, orientation.NORTH)
+        self.remote_control.turn = 1
+        blabla = self.remote_control.setBallProps(ball_pos, ball_velocity).game_snapshot
 
-    def getState(self, snapshot: GameSnapshot) -> Any:
+        print(f'OK OK I THINK I GOT IT {blabla}')
+        return blabla
+
+    def getState(self, snapshot: GameSnapshot):
         return [True, True, False]
 
-    async def play(self, orderSet: Lugo.OrderSet, snapshot: GameSnapshot, action: Any) -> Lugo.OrderSet:
+    def play(self, orderSet: Lugo.OrderSet, snapshot: GameSnapshot, action: Any) -> Lugo.OrderSet:
         reader = GameSnapshotReader(snapshot, Lugo.Team.Side.HOME)
         dir = reader.makeOrderMoveByDirection(action)
-        return orderSet.setOrdersList([dir])
+        orderSet.orders.extend([dir])
+        return orderSet
 
-    async def evaluate(self, previousSnapshot: GameSnapshot, newSnapshot: GameSnapshot) -> Dict[str, Union[int, bool]]:
+    def evaluate(self, previousSnapshot: GameSnapshot, newSnapshot: GameSnapshot):
         return {"done": newSnapshot.getTurn() >= 20, "reward": random.random()}
 
-    async def _randomPlayerPos(self, Mapper: Mapper, side: Lugo.Team.Side, number: int) -> None:
+    def _randomPlayerPos(self, Mapper: Mapper, side: Lugo.Team.Side, number: int) -> None:
         min_col = 10
         max_col = 17
         min_row = 1
         max_row = 8
 
-        random_velocity = self._create_velocity(0, Direction.NORTH)
+        random_velocity = self._create_velocity(0, orientation.NORTH)
 
         random_col = random.randint(min_col, max_col)
         random_row = random.randint(min_row, max_row)
         random_position = Mapper.getRegion(random_col, random_row).getCenter()
-        await self.remote_control.setPlayerProps(side, number, random_position, random_velocity)
+        self.remote_control.setPlayerProps(side, number, random_position, random_velocity)
 
-    def _create_velocity(self, speed: float, direction: Direction) -> Physics.Velocity:
-        velocity = Physics.Velocity()
-        velocity.setSpeed(speed)
-        velocity.setDirection(direction)
+    def _create_velocity(self, speed: float, direction) -> physics_pb2.Velocity:
+        velocity = physics_pb2.Velocity()
+
+        #print(isinstance(direction, physics_pb2.Vector))
+        north_vector = physics_pb2.Vector()
+        north_vector.x = 0
+        north_vector.y = 1
+        velocity.speed = speed
+        #velocity.direction = north_vector
         return velocity
 
     def find_opponent(self, reader: GameSnapshotReader) -> List[List[bool]]:

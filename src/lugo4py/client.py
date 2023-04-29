@@ -94,12 +94,11 @@ class LugoClient(server_grpc.GameServicer):
             number=self.number,
             init_position=self.init_position,
         )
-        on_join()
 
         response_iterator = self._client.JoinATeam(join_request)
 
         log_with_time("Joint to the team")
-
+        on_join()
         self._play_routine = executor.submit(self._response_watcher, response_iterator, processor)
         return self._play_finished
 
@@ -116,7 +115,10 @@ class LugoClient(server_grpc.GameServicer):
             # snapshot,
             processor: RawTurnProcessor) -> None:
         try:
+            print(f"{self.teamSide}-{self.number} Waiting for snaps")
             for snapshot in response_iterator:
+                print(f"Raw Snapshot for {self.teamSide}-{self.number}")
+
                 if snapshot.state == server_pb2.GameSnapshot.State.OVER:
                     log_with_time(
                         f" All done! {server_pb2.GameSnapshot.State.OVER}")
@@ -129,13 +131,14 @@ class LugoClient(server_grpc.GameServicer):
                     try:
                         orders = processor(orders, snapshot)
                     except Exception as e:
-                        log_with_time(f"bot error: {e}")
+                        traceback.print_exc()
+                        log_with_time(f"bot processor error: {e}")
 
                     if orders:
                         self._client.SendOrders(orders)
                     else:
                         log_with_time(
-                            f"[turn #{snapshot.turn}] bot did not return orders")
+                            f"[turn #{snapshot.turn}] bot {self.teamSide}-{self.number} did not return orders")
                 elif snapshot.state == server_pb2.GameSnapshot.State.GET_READY:
                     log_with_time(f"[turn #{snapshot.turn}] getting ready")
                     self.getting_ready_handler(snapshot)
@@ -157,6 +160,6 @@ def NewClientFromConfig(config: EnvVarLoader, initialPosition: Point) -> LugoCli
     )
 
 
-def log_with_time(msg: str):
+def log_with_time(msg):
     current_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
     print(f"{current_time}: {msg}")

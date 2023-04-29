@@ -1,4 +1,6 @@
-from .training_controller import TrainingCrl, delay
+import time
+
+from .training_controller import TrainingCrl
 from .helper_bots import newChaserHelperPlayer, newZombieHelperPlayer
 from .remote_control import RemoteControl
 from .interfaces import BotTrainer, TrainingFunction
@@ -6,6 +8,7 @@ from ..client import LugoClient
 from ..protos.server_pb2 import Team, OrderSet
 import asyncio
 from threading import Timer
+import threading
 
 from concurrent.futures import ThreadPoolExecutor
 
@@ -28,70 +31,68 @@ class Gym:
         self.gameServerAddress = None
         self.helperPlayers = None
 
-    async def start(self, lugoClient: LugoClient, executor: ThreadPoolExecutor):
-        # print('BAAAAAAAA\n')
-
+    def start(self, lugoClient: LugoClient, executor: ThreadPoolExecutor):
         hasStarted = False
-        print('ZOOOOMBIES\n')
-        async def play_callback(orderSet, snapshot):
+
+        def play_callback(orderSet, snapshot):
+            print('22222222222\n')
             nonlocal hasStarted
             hasStarted = True
             return self.trainingCrl.gameTurnHandler(orderSet, snapshot)
 
         def trigger_listening() -> None:
             nonlocal hasStarted
+            print(f'11111111 {hasStarted}\n')
             if hasStarted is False:
-                # loop = asyncio.get_event_loop()
-                print('VAI\n')
-                asyncio.run(self.remoteControl.resumeListening())
-                print('FOI\n')
+                executor.submit(self.remoteControl.resumeListening())
 
-        async def on_join() -> None:
-            print('The main bot is connected\n')
-            # await asyncio.sleep(3)
+        def on_join() -> None:
+            print('The main bot is connected!! Starting to connect the zombies\n')
+            time.sleep(0.2)
             if self.gameServerAddress:
-                await self.helperPlayers(self.gameServerAddress, executor)
+                self.helperPlayers(self.gameServerAddress, executor)
             print('helpers are done\n')
             trigger_listening()
+            print('Bhaa\n')
             # exp = Timer(3.0, trigger_listening, ())
             # exp.start()
 
-        await lugoClient.play(play_callback, on_join)
+        lugoClient.play(executor, play_callback, on_join)
+        return lugoClient
 
 
-    async def withZombiePlayers(self, gameServerAddress, training_bot_number=None, training_team_side=None):
+    def withZombiePlayers(self, game_server_address):
         print('Entering withZombiePlayers\n')
-        self.gameServerAddress = gameServerAddress
+        self.gameServerAddress = game_server_address
         self.helperPlayers = create_helper_players
         return self
 
-    async def withChasersPlayers(self, gameServerAddress):
-        self.gameServerAddress = gameServerAddress
+    def withChasersPlayers(self, game_server_address):
+        self.gameServerAddress = game_server_address
 
-        async def helper_players(gameServerAddress):
+        def helper_players(game_server_address):
             for i in range(1, 12):
-                await newChaserHelperPlayer(Team.Side.HOME, i, gameServerAddress)
-                await delay(50)
-                await newChaserHelperPlayer(Team.Side.AWAY, i, gameServerAddress)
-                await delay(50)
+                newChaserHelperPlayer(Team.Side.HOME, i, game_server_address)
+                delay(50)
+                newChaserHelperPlayer(Team.Side.AWAY, i, game_server_address)
+                delay(50)
 
-        self.helperPlayers = await helper_players(gameServerAddress)
+        self.helperPlayers = helper_players(game_server_address)
         return self
 
-async def coro1(i):
-    # await asyncio.sleep(1)
-    print(f"step 1 - {i}")
-    # await asyncio.sleep(1)
-    # print(f"step 2 - {i}")
 
-async def create_helper_players(gameServerAddress: str, executor: ThreadPoolExecutor):
+def create_helper_players(gameServerAddress: str, executor: ThreadPoolExecutor):
     tasks = []
-    await asyncio.gather(*(newZombieHelperPlayer(Team.Side.AWAY, i+1, gameServerAddress, executor) for i in range(11)))
+
     # await newZombieHelperPlayer(Team.Side.HOME, 1, gameServerAddress)
     # group = asyncio.gather(newZombieHelperPlayer(Team.Side.AWAY, 1, gameServerAddress))
     # group = asyncio.gather(group, newZombieHelperPlayer(Team.Side.AWAY, 2, gameServerAddress))
-    # for i in range(1, 12):
-    print(f'PLEAYR =====================')
+    for i in range(0, 11):
+        time.sleep(0.1)
+        newZombieHelperPlayer(Team.Side.HOME, i + 1, gameServerAddress, executor)
+        time.sleep(0.1)
+        newZombieHelperPlayer(Team.Side.AWAY, i + 1, gameServerAddress, executor)
+
     #     if group is None:
     #         group = asyncio.gather(newZombieHelperPlayer(Team.Side.AWAY, i, gameServerAddress))
     #     else:
