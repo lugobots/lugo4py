@@ -33,7 +33,7 @@ PLAYER_POSITIONS = {
 
 if __name__ == "__main__":
     # Set necessary env variables for testing
-    if False:
+    if True:
         os.environ['BOT_TEAM'] = 'HOME'
         os.environ['BOT_NUMBER'] = '2'
         os.environ['BOT_GRPC_URL'] = 'localhost:5000'
@@ -55,10 +55,13 @@ if __name__ == "__main__":
 
     my_bot = MyBot(config.getBotTeamSide(), config.getBotNumber(), initialRegion.getCenter(), map)
 
-    print("Bot will start running")
-    asyncio.run(lugo_client.play_as_bot(my_bot, lambda:
+    print("Bot will start running V@")
+
+    async def on_join():
+        # await asyncio.sleep(1)
         print("joint!")
-    ))
+
+    asyncio.run(lugo_client.play_as_bot(my_bot, on_join))
     # lugo_client.play_as_bot(my_bot)
 
     print("All good!")

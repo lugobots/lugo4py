@@ -7,7 +7,7 @@ from ..snapshot import GameSnapshotReader
 import os
 from ..loader import EnvVarLoader
 from typing import Callable, Awaitable
-
+from concurrent.futures import ThreadPoolExecutor
 PLAYER_POSITIONS = {
     1: {'Col': 0, 'Row': 1},
     2: {'Col': 1, 'Row': 1},
@@ -56,30 +56,34 @@ def background(f):
 
     return wrapped
 
+async def zombie_turn_handler(order_set, snapshot):
+    # order_set.setDebugMessage(
+    #     f"{'HOME' if team_side == 0 else 'AWAY'}-{player_number} #{snapshot.getTurn()}")
+    return order_set
+# @background
+async def newZombieHelperPlayer(team_side, player_number, game_server_address, executor: ThreadPoolExecutor):
+    await asyncio.sleep(0.5)
+    # print(f"step 1 - {player_number}")
+    # await asyncio.sleep(2)
+    # print(f"step 2 - {player_number}")
+    # print(f'New ZOOOOOMBIE {team_side} and {player_number}\n')
+    #
 
-@background
-async def newZombieHelperPlayer(team_side, player_number, game_server_address):
-    print(f'New ZOOOOOMBIE {team_side} and {player_number}\n')
-
-    async def zombie_turn_handler(order_set, snapshot):
-        order_set.setDebugMessage(
-            f"{'HOME' if team_side == 0 else 'AWAY'}-{player_number} #{snapshot.getTurn()}")
-        return order_set
-
-    return await newCustomHelperPlayer(team_side, player_number, game_server_address, zombie_turn_handler)
+    #
+    return await newCustomHelperPlayer(team_side, player_number, game_server_address, zombie_turn_handler, executor)
 
 
 async def newChaserHelperPlayer(team_side, player_number, game_server_address):
     return await newCustomHelperPlayer(team_side, player_number, game_server_address, chaser_turn_handler)
 
 
-async def newCustomHelperPlayer(team_side, player_number, game_server_address, turn_handler_function):
+async def newCustomHelperPlayer(team_side, player_number, game_server_address, turn_handler_function, executor: ThreadPoolExecutor):
     try:
-        print(f'Creating {team_side} and {player_number}\n')
+        # print(f'Creating {team_side} and {player_number}\n')
         initial_region = Mapper(22, 5, team_side).getRegion(
             PLAYER_POSITIONS[player_number]['Col'], PLAYER_POSITIONS[player_number]['Row'])
 
-        print(f'New cliet {team_side} and {player_number}\n')
+        # print(f'New cliet {team_side} and {player_number}\n')
         lugo_client = LugoClient(
             game_server_address,
             True,
@@ -87,12 +91,13 @@ async def newCustomHelperPlayer(team_side, player_number, game_server_address, t
             team_side,
             player_number,
             initial_region.getCenter(),
+            executor,
         )
 
         async def muted():
             print("+++")
 
-        print(f'Vai connectar {team_side} and {player_number}\n')
+        # print(f'Vai connectar {team_side} and {player_number}\n')
         await lugo_client.play(turn_handler_function, muted)
     except Exception as e:
         raise e

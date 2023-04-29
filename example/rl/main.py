@@ -13,7 +13,7 @@ import grpc
 import asyncio
 import os
 from src.lugo4py.loader import EnvVarLoader
-
+from concurrent.futures import ThreadPoolExecutor
 # Training settings
 train_iterations = 50
 steps_per_iteration = 240
@@ -22,7 +22,7 @@ grpc_address = "localhost:5000"
 grpc_insecure = True
 
 
-async def main():
+async def main(executor):
     team_side = server_pb2.Team.Side.HOME
     print('main: Training bot team side = ', team_side)
     # The map will help us see the field in quadrants (called regions) instead of working with coordinates
@@ -40,7 +40,9 @@ async def main():
         "",
         team_side,
         TRAINING_PLAYER_NUMBER,
-        initial_region.getCenter())
+        initial_region.getCenter(),
+        executor
+    )
     # The RemoteControl is a gRPC client that will connect to the Game Server and change the element positions
     rc = RemoteControl()
     await rc.connect(grpc_address)  # Pass address here
@@ -57,7 +59,7 @@ async def main():
     print('Chamando a withzombie')
     WithZombiePlayers = await gym.withZombiePlayers(grpc_address, TRAINING_PLAYER_NUMBER, team_side)
     print('=============+++++++')
-    await WithZombiePlayers.start(lugo_client)
+    await WithZombiePlayers.start(lugo_client, executor)
     # If you want to train controlling all players, use the with_zombie_players players to create zombie players.
     # await gym.withZombiePlayers(grpc_address).start(lugo_client)
 
@@ -110,4 +112,5 @@ async def my_training_function(training_ctrl: TrainingController):
     print("Training is over, scores:", scores)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    executor = ThreadPoolExecutor()
+    asyncio.run(main(executor))

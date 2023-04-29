@@ -1,8 +1,10 @@
+import asyncio
+
 import grpc
 import time
-
+from concurrent.futures import ThreadPoolExecutor
 import traceback
-from typing import Callable, Awaitable
+from typing import Callable, Awaitable, Iterator
 
 from .protos.physics_pb2 import Point, Vector
 from .protos import server_pb2
@@ -11,6 +13,7 @@ from .protos import server_pb2_grpc as server_grpc
 from .stub import Bot, PLAYER_STATE
 from .loader import EnvVarLoader
 from .snapshot import defineState
+import threading
 
 PROTOCOL_VERSION = "1.0.0"
 
@@ -20,15 +23,17 @@ RawTurnProcessor = Callable[[
 
 class LugoClient(server_grpc.GameServicer):
 
-    def __init__(self, server_add, grpc_insecure, token, teamSide, number, init_position):
+    def __init__(self, server_add, grpc_insecure, token, teamSide, number, init_position, executor: ThreadPoolExecutor):
         self.callback = Callable[[
             server_pb2.GameSnapshot], server_pb2.OrderSet]
-        self.serverAdd = server_add
+        self.serverAdd = server_add + "?t=" + str(teamSide) + "-" + str(number)
         self.grpc_insecure = grpc_insecure
         self.token = token
         self.teamSide = teamSide
         self.number = number
         self.init_position = init_position
+        self._call_finished = threading.Event()
+        self.executor = executor
 
     def set_client(self, client: server_grpc.GameStub):
         self._client = client
@@ -37,7 +42,7 @@ class LugoClient(server_grpc.GameServicer):
         self.init_position = initial_position
 
     def getting_ready_handler(self, snapshot: server_pb2.GameSnapshot):
-        print(f'Default getting ready handler called for {snapshot}')
+        print(f'Default getting ready handler called for ')
 
     def setReadyHandler(self, newReadyHandler):
         self.getting_ready_handler = newReadyHandler
@@ -47,7 +52,7 @@ class LugoClient(server_grpc.GameServicer):
         log_with_time("Starting to play")
         await self._bot_start(callback, on_join)
 
-    async def play_as_bot(self, bot: Bot, on_join: Callable[[], None]):
+    async def play_as_bot(self, bot: Bot, on_join: Callable[[], Awaitable[None]]):
         self.setReadyHandler(bot.gettingReady)
         log_with_time("Playing as bot")
 
@@ -86,7 +91,7 @@ class LugoClient(server_grpc.GameServicer):
             channel = grpc.secure_channel(
                 self.serverAdd, grpc.ssl_channel_credentials())
         try:
-            grpc.channel_ready_future(channel).result(timeout=15)
+            grpc.channel_ready_future(channel).result(timeout=30)
         except grpc.FutureTimeoutError:
             raise Exception("timed out waiting to connect to the game server")
 
@@ -100,10 +105,73 @@ class LugoClient(server_grpc.GameServicer):
             init_position=self.init_position,
         )
         await on_join()
+
+        response_iterator = self._client.JoinATeam(join_request)
+
         log_with_time("Joint to the team")
-        for snapshot in self._client.JoinATeam(join_request):
-            log_with_time(f"Snapshot state: {snapshot.state}")
-            try:
+
+        # def wrapper(coro):
+        #     log_with_time("BBB")
+        #     return asyncio.run(coro)
+        # await asyncio.gather(self._response_watcher(response_iterator, processor))
+        # executor = ThreadPoolExecutor()
+        # await self._response_watcher(response_iterator, processor)
+        log_with_time("AAAAA")
+
+        # self.executor.map(wrapper, response_iterator)
+        asyncio.ensure_future(self._response_watcher(response_iterator, processor))
+        # coros = [ for snapshot in response_iterator]
+        # for r in self.executor.map(wrapper, coros):
+        #     print(r, time.ctime())
+        # self._consumer_future = self.executor.submit(self._response_watcher, response_iterator, processor)
+        # log_with_time("BBB")
+        # self._consumer_future.result()
+        await asyncio.sleep(100)
+        # log_with_time("CCCCCC")
+        # self._call_finished.wait(timeout=None)
+        # log_with_time("DDDD")
+        # for snapshot in self._client.JoinATeam(join_request):
+        #     log_with_time(f"Snapshot state: {snapshot.state}")
+        #     try:
+        #         if snapshot.state == server_pb2.GameSnapshot.State.OVER:
+        #             log_with_time(
+        #                 f" All done! {server_pb2.GameSnapshot.State.OVER}")
+        #             break
+        #         elif snapshot.state == server_pb2.GameSnapshot.State.LISTENING:
+        #             orders = server_pb2.OrderSet()
+        #             orders.turn = snapshot.turn
+        #             try:
+        #                 orders = await processor(orders, snapshot)
+        #             except Exception as e:
+        #                 log_with_time(f"bot error: {e}")
+        #
+        #             if orders:
+        #                 self._client.SendOrders(orders)
+        #             else:
+        #                 log_with_time(
+        #                     f"[turn #{snapshot.turn}] bot did not return orders")
+        #         elif snapshot.state == server_pb2.GameSnapshot.State.GET_READY:
+        #             log_with_time(f"[turn #{snapshot.turn}] getting ready")
+        #             await self.getting_ready_handler(snapshot)
+        #
+        #     except Exception as e:
+        #         log_with_time(f"internal error processing turn: {e}")
+        #         traceback.print_exc()
+
+    async def _response_watcher(
+            self,
+            response_iterator: Iterator[server_pb2.GameSnapshot],
+            # snapshot,
+            processor: RawTurnProcessor) -> None:
+        try:
+            log_with_time("ME CHAMOU??")
+            await asyncio.sleep(3)
+            # Essa porra desser FOR ta fudendo TUDO!!
+            log_with_time("listening")
+            # Talvez essa merda aqui ajude https://chromium.googlesource.com/external/github.com/grpc/grpc/+/master/examples/python/async_streaming/client.py
+
+            for snapshot in response_iterator:
+                log_with_time("Got snapshot")
                 if snapshot.state == server_pb2.GameSnapshot.State.OVER:
                     log_with_time(
                         f" All done! {server_pb2.GameSnapshot.State.OVER}")
@@ -123,12 +191,11 @@ class LugoClient(server_grpc.GameServicer):
                             f"[turn #{snapshot.turn}] bot did not return orders")
                 elif snapshot.state == server_pb2.GameSnapshot.State.GET_READY:
                     log_with_time(f"[turn #{snapshot.turn}] getting ready")
-                    await self.getting_ready_handler(snapshot)
-
-            except Exception as e:
-                log_with_time(f"internal error processing turn: {e}")
-                traceback.print_exc()
-
+                    self.getting_ready_handler(snapshot)
+            # self._call_finished.set()
+        except Exception as e:
+            log_with_time(f"internal error processing turn: {e}")
+            traceback.print_exc()
 
 def NewClientFromConfig(config: EnvVarLoader, initialPosition: Point) -> LugoClient:
     log_with_time("Creating a new client from config")
