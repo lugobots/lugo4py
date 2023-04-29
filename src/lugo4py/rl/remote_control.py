@@ -32,11 +32,12 @@ class RemoteControl:
         except Exception:
             raise Exception("[Remote Control] Failed to pause/resume the game")
 
-    def resumeListening(self):
+    def resumeListening(self, waiter: threading.Event):
         req = ResumeListeningRequest()
         try:
             result = self.client.ResumeListeningPhase(req)
             print(f"ON LISTENING PHASE: {result}")
+            waiter.set()
             return result
         except Exception:
             raise Exception("[Remote Control] Failed to resume listening phase the game")

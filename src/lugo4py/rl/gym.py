@@ -16,6 +16,7 @@ class Gym:
 
     def __init__(
             self,
+            executor: ThreadPoolExecutor,
             remote_control: RemoteControl,
             trainer: BotTrainer,
             trainingFunction: TrainingFunction,
@@ -25,7 +26,7 @@ class Gym:
             options = {"debugging_log": False}
 
         self.remoteControl = remote_control
-        self.trainingCrl = TrainingCrl(
+        self.trainingCrl = TrainingCrl(executor,
             remote_control, trainer, trainingFunction)
         self.trainingCrl.debugging_log = options["debugging_log"]
         self.gameServerAddress = None
@@ -35,25 +36,26 @@ class Gym:
         hasStarted = False
 
         def play_callback(orderSet, snapshot):
-            print('22222222222\n')
+            # print('22222222222\n')
             nonlocal hasStarted
             hasStarted = True
             return self.trainingCrl.gameTurnHandler(orderSet, snapshot)
 
         def trigger_listening() -> None:
             nonlocal hasStarted
-            print(f'11111111 {hasStarted}\n')
             if hasStarted is False:
-                executor.submit(self.remoteControl.resumeListening())
+                waiterResumeListening = threading.Event()
+                executor.submit(self.remoteControl.resumeListening, waiterResumeListening)
+                waiterResumeListening.wait()
 
         def on_join() -> None:
             print('The main bot is connected!! Starting to connect the zombies\n')
             time.sleep(0.2)
             if self.gameServerAddress:
                 self.helperPlayers(self.gameServerAddress, executor)
-            print('helpers are done\n')
+            # print('helpers are done\n')
             trigger_listening()
-            print('Bhaa\n')
+            # print('Bhaa\n')
             # exp = Timer(3.0, trigger_listening, ())
             # exp.start()
 

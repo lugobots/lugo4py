@@ -33,10 +33,7 @@ class MyBotTrainer:
         ball_pos = self.Mapper.getRegion(0, 0).getCenter()
         ball_velocity = self._create_velocity(0, orientation.NORTH)
         self.remote_control.turn = 1
-        blabla = self.remote_control.setBallProps(ball_pos, ball_velocity).game_snapshot
-
-        print(f'OK OK I THINK I GOT IT {blabla}')
-        return blabla
+        return self.remote_control.setBallProps(ball_pos, ball_velocity).game_snapshot
 
     def getState(self, snapshot: GameSnapshot):
         return [True, True, False]

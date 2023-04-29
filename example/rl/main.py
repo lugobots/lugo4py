@@ -58,7 +58,7 @@ def my_training_function(training_ctrl: TrainingController):
                     break
 
         except Exception as e:
-            print("Error:", e)
+            print("error during trainning session:", e)
 
     training_ctrl.stop()
     print("Training is over, scores:", scores)
@@ -90,8 +90,9 @@ if __name__ == "__main__":
 
     bot = MyBotTrainer(rc)
 
+    gymExecutor = ThreadPoolExecutor()
     # Now we can create the Gym, which will control all async work and allow us to focus on the learning part
-    gym = Gym(rc, bot, my_training_function, {"debugging_log": True})
+    gym = Gym(gymExecutor, rc, bot, my_training_function, {"debugging_log": True})
 
     # First, starting the game server
     # If you want to train playing against another bot, then you should start the other team first.
@@ -100,8 +101,8 @@ if __name__ == "__main__":
     print('Chamando a withzombie')
     WithZombiePlayers = gym.withZombiePlayers(grpc_address)
     print('=============+++++++')
-    executor = ThreadPoolExecutor(22)
-    WithZombiePlayers.start(lugo_client, executor)
+    playersExecutor = ThreadPoolExecutor(22)
+    WithZombiePlayers.start(lugo_client, playersExecutor)
 
     def signal_handler(sig, frame):
         print("Stop requested")

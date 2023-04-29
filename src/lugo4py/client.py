@@ -115,10 +115,7 @@ class LugoClient(server_grpc.GameServicer):
             # snapshot,
             processor: RawTurnProcessor) -> None:
         try:
-            print(f"{self.teamSide}-{self.number} Waiting for snaps")
             for snapshot in response_iterator:
-                print(f"Raw Snapshot for {self.teamSide}-{self.number}")
-
                 if snapshot.state == server_pb2.GameSnapshot.State.OVER:
                     log_with_time(
                         f" All done! {server_pb2.GameSnapshot.State.OVER}")
