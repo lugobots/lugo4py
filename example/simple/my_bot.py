@@ -231,7 +231,7 @@ class MyBot(Bot):
             traceback.print_exc()
 
 
-    async def gettingReady(self, snapshot: Lugo.GameSnapshot):
+    def gettingReady(self, snapshot: Lugo.GameSnapshot):
         print('getting ready')
 
 PLAYER_POSITIONS = {

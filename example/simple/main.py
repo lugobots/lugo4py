@@ -2,10 +2,12 @@ import sys
 import os
 import asyncio
 
+import signal
 
 # both src are necessary to account for execution on docker and on project folder
 sys.path.append("../../src")
 sys.path.append("./src")
+from concurrent.futures import ThreadPoolExecutor
 
 from lugo4py.loader import EnvVarLoader
 from lugo4py.snapshot import GameSnapshotReader
@@ -55,13 +57,20 @@ if __name__ == "__main__":
 
     my_bot = MyBot(config.getBotTeamSide(), config.getBotNumber(), initialRegion.getCenter(), map)
 
-    print("Bot will start running V@")
+    def on_join():
+        print("I may run it when the bot is connected to the server")
 
-    async def on_join():
-        # await asyncio.sleep(1)
-        print("joint!")
 
-    asyncio.run(lugo_client.play_as_bot(my_bot, on_join))
-    # lugo_client.play_as_bot(my_bot)
+    executor = ThreadPoolExecutor()
+    lugo_client.play_as_bot(executor, my_bot, on_join)
+    print("We are playing!")
 
-    print("All good!")
+
+    def signal_handler(sig, frame):
+        print("Stop requested")
+        lugo_client.stop()
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, signal_handler)
+    lugo_client.wait()
+    print("bye!")
