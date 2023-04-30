@@ -34,6 +34,7 @@ class Gym:
         self.trainingCrl.logger = self._debug
         self.gameServerAddress = None
         self.helperPlayers = None
+        self.players = []
 
     def start(self, lugoClient: LugoClient, executor: ThreadPoolExecutor):
         hasStarted = False
@@ -54,12 +55,17 @@ class Gym:
             self._debug('The main bot is connected!! Starting to connect the zombies')
             time.sleep(0.2)
             if self.gameServerAddress:
-                self.helperPlayers(self.gameServerAddress, executor)
+                self.players = self.helperPlayers(self.gameServerAddress, executor)
             self._debug('helpers are done')
             trigger_listening()
 
         lugoClient.play(executor, play_callback, on_join)
         return lugoClient
+
+    def stop(self):
+        self.trainingCrl.stop()
+        for player in self.players:
+            player.stop()
 
     def withZombiePlayers(self, game_server_address):
         self._debug('Entering withZombiePlayers\n')
@@ -85,8 +91,10 @@ class Gym:
 
 
 def create_helper_players(gameServerAddress: str, executor: ThreadPoolExecutor):
+    children = []
     for i in range(0, 11):
         time.sleep(0.01)
-        newZombieHelperPlayer(Team.Side.HOME, i + 1, gameServerAddress, executor)
+        children.append(newZombieHelperPlayer(Team.Side.HOME, i + 1, gameServerAddress, executor))
         time.sleep(0.01)
-        newZombieHelperPlayer(Team.Side.AWAY, i + 1, gameServerAddress, executor)
+        children.append(newZombieHelperPlayer(Team.Side.AWAY, i + 1, gameServerAddress, executor))
+    return children

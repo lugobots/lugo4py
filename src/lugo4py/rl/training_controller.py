@@ -24,7 +24,7 @@ class TrainingCrl(TrainingController):
         self.cycleSeq = 0
         self.bot = bot  # type: BotTrainer
         self.debugging_log = True
-        self.stopRequested = False
+        self.stopRequested = threading.Event()
         self.trainingExecutor = executor
         self.resumeListeningPhase = lambda action: print(
             'resumeListeningPhase not defined yet - should wait the initialise it on the first "update" call')
@@ -64,8 +64,8 @@ class TrainingCrl(TrainingController):
 
             self.logger('got new snapshot after order has been sent')
 
-            if self.stopRequested:
-                return True, 0
+            if self.stopRequested.is_set():
+                return None
 
             # TODO: if I want to skip the net N turns? I should be able too
             self.logger(f"update finished (turn {self.lastSnapshot.turn} waiting for next action)")
@@ -80,6 +80,9 @@ class TrainingCrl(TrainingController):
             raise e
 
     def gameTurnHandler(self, order_set, snapshot):
+        if self.stopRequested.is_set():
+            self.logger('skipping turn handler because the stop request')
+            return None
         self.logger('new turn')
         if self.onListeningMode:
             raise RuntimeError(
@@ -104,7 +107,7 @@ class TrainingCrl(TrainingController):
         self.resumeListeningPhase = resume
         self.onListeningMode = True
         if self.trainingHasStarted is False:
-            self.trainingExecutor.submit(self.onReady, self)
+            self.trainingExecutor.submit(self.onReady, self, self.stopRequested)
             self.trainingHasStarted = True
             self.logger(f'the training has started')
 
@@ -131,7 +134,7 @@ class TrainingCrl(TrainingController):
             self.trainingExecutor.submit(self.remoteControl.resumeListening, waiterResumeListening)
             waiterResumeListening.wait()
 
-            waiter.wait(timeout=10)
+            waiter.wait(timeout=3)
             if new_snapshot is None:
                 raise RuntimeError(
                     "timed out waiting for the next listening state - check the training controller")
@@ -144,7 +147,6 @@ class TrainingCrl(TrainingController):
             raise
 
     def stop(self):
-        self.stopRequested = True
-        # self.remoteControl.stop()
+        self.stopRequested.set()
 
 

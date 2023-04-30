@@ -106,6 +106,7 @@ class LugoClient(server_grpc.GameServicer):
 
     def stop(self):
         log_with_time(f"{self.get_name()} stopping bot - you may need to kill the process if there is no messages coming from the server")
+        self._play_routine.cancel()
         self._play_finished.set()
 
     def wait(self):

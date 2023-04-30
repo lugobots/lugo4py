@@ -73,6 +73,7 @@ def newCustomHelperPlayer(team_side, player_number, game_server_address, turn_ha
 
         # print(f'Vai connectar {team_side} and {player_number}\n')
         lugo_client.play(executor, turn_handler_function, muted)
+        return lugo_client
     except Exception as e:
         lugo_client.stop()
         raise e

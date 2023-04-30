@@ -1,6 +1,8 @@
 import random
 import sys
 import signal
+import threading
+
 from example.rl.my_bot import MyBotTrainer, TRAINING_PLAYER_NUMBER
 from src.lugo4py.protos import server_pb2
 from src.lugo4py.rl.training_controller import TrainingController
@@ -22,7 +24,9 @@ steps_per_iteration = 600
 grpc_address = "localhost:5000"
 grpc_insecure = True
 
-def my_training_function(training_ctrl: TrainingController):
+stop = threading.Event()
+
+def my_training_function(training_ctrl: TrainingController, stopEvent: threading.Event):
     print("Let's train")
 
     possible_actions = [
@@ -42,6 +46,12 @@ def my_training_function(training_ctrl: TrainingController):
             training_ctrl.setEnvironment({"iteration": i})
 
             for j in range(steps_per_iteration):
+                if stopEvent.is_set():
+                    training_ctrl.stop()
+                    stop.set()
+                    print("trainning stopped")
+                    return
+
                 sensors = training_ctrl.getState()
 
                 # The sensors would feed our training model, which would return the next action
@@ -62,6 +72,7 @@ def my_training_function(training_ctrl: TrainingController):
 
     training_ctrl.stop()
     print("Training is over, scores:", scores)
+    stop.set()
 
 if __name__ == "__main__":
 
@@ -103,21 +114,14 @@ if __name__ == "__main__":
     playersExecutor = ThreadPoolExecutor(22)
     WithZombiePlayers.start(lugo_client, playersExecutor)
 
+
     def signal_handler(sig, frame):
         print("Stop requested\n")
         lugo_client.stop()
-        sys.exit(0)
+        gym.stop()
+        playersExecutor.shutdown(wait=True)
+        gymExecutor.shutdown(wait=True)
 
     signal.signal(signal.SIGINT, signal_handler)
 
-    lugo_client.wait()
-
-
-    # If you want to train controlling all players, use the with_zombie_players players to create zombie players.
-    # await gym.withZombiePlayers(grpc_address).start(lugo_client)
-
-    # If you want to train against bots running randomly, you can use this helper
-    # await gym.with_random_motion_players(grpc_address, 10).start(lugo_client)
-
-    # If you want to train against bots chasing the ball, you can use this helper
-    # await gym.with_chasers_players(grpc_address).start(lugo_client)
+    stop.wait()
