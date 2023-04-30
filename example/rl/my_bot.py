@@ -32,7 +32,7 @@ class MyBotTrainer:
 
         ball_pos = self.Mapper.getRegion(0, 0).getCenter()
         ball_velocity = self._create_velocity(0, orientation.NORTH)
-        self.remote_control.turn = 1
+        self.remote_control.setGameProps(1)
         return self.remote_control.setBallProps(ball_pos, ball_velocity).game_snapshot
 
     def getState(self, snapshot: GameSnapshot):
@@ -44,8 +44,8 @@ class MyBotTrainer:
         orderSet.orders.extend([dir])
         return orderSet
 
-    def evaluate(self, previousSnapshot: GameSnapshot, newSnapshot: GameSnapshot):
-        return {"done": newSnapshot.getTurn() >= 20, "reward": random.random()}
+    def evaluate(self, previousSnapshot: GameSnapshot, newSnapshot: GameSnapshot) -> Any:
+        return {"done": newSnapshot.turn >= 600, "reward": random.random()}
 
     def _randomPlayerPos(self, Mapper: Mapper, side: Lugo.Team.Side, number: int) -> None:
         min_col = 10
@@ -63,7 +63,6 @@ class MyBotTrainer:
     def _create_velocity(self, speed: float, direction) -> physics_pb2.Velocity:
         velocity = physics_pb2.Velocity()
 
-        #print(isinstance(direction, physics_pb2.Vector))
         north_vector = physics_pb2.Vector()
         north_vector.x = 0
         north_vector.y = 1

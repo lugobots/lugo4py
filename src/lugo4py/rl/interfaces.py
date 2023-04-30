@@ -100,7 +100,7 @@ class BotTrainer(ABC):
     # @param {GameSnapshot} newSnapshot - The current game state
     #
     @abstractmethod
-    def evaluate(self, previousSnapshot: GameSnapshot, newSnapshot: GameSnapshot):
+    def evaluate(self, previousSnapshot: GameSnapshot, newSnapshot: GameSnapshot) -> Any:
         pass
 
 

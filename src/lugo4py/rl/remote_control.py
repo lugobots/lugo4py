@@ -36,7 +36,6 @@ class RemoteControl:
         req = ResumeListeningRequest()
         try:
             result = self.client.ResumeListeningPhase(req)
-            print(f"ON LISTENING PHASE: {result}")
             waiter.set()
             return result
         except Exception:

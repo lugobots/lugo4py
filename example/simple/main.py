@@ -67,7 +67,7 @@ if __name__ == "__main__":
 
 
     def signal_handler(sig, frame):
-        print("Stop requested")
+        print("Stop requested\n")
         lugo_client.stop()
         sys.exit(0)
 

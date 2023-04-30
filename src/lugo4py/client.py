@@ -33,9 +33,11 @@ class LugoClient(server_grpc.GameServicer):
         self._play_finished = threading.Event()
         self._play_routine = None
 
-
     def set_client(self, client: server_grpc.GameStub):
         self._client = client
+
+    def get_name(self):
+        return f"{'HOME' if self.teamSide == 0 else 'AWAY'}-{self.number}"
 
     def set_initial_position(self, initial_position: Point):
         self.init_position = initial_position
@@ -48,12 +50,12 @@ class LugoClient(server_grpc.GameServicer):
 
     def play(self, executor: ThreadPoolExecutor, callback: Callable[[server_pb2.GameSnapshot], server_pb2.OrderSet], on_join: Callable[[], None]) -> threading.Event:
         self.callback = callback
-        log_with_time("Starting to play")
+        log_with_time(f"{self.get_name()} Starting to play")
         return self._bot_start(executor, callback, on_join)
 
     def play_as_bot(self, executor: ThreadPoolExecutor, bot: Bot, on_join: Callable[[], None]) -> threading.Event:
         self.setReadyHandler(bot.gettingReady)
-        log_with_time("Playing as bot")
+        log_with_time(f"{self.get_name()} Playing as bot")
 
         def processor(orders: server_pb2.OrderSet, snapshot: server_pb2.GameSnapshot) -> server_pb2.OrderSet:
             playerState = defineState(
@@ -74,7 +76,7 @@ class LugoClient(server_grpc.GameServicer):
         return self._bot_start(executor, processor, on_join)
 
     def _bot_start(self, executor: ThreadPoolExecutor, processor: RawTurnProcessor, on_join: Callable[[], None]) -> threading.Event:
-        log_with_time("Starting bot")
+        log_with_time(f"{self.get_name()} Starting bot {self.teamSide}-{self.number}")
         if self.grpc_insecure:
             channel = grpc.insecure_channel(self.serverAdd)
         else:
@@ -97,13 +99,13 @@ class LugoClient(server_grpc.GameServicer):
 
         response_iterator = self._client.JoinATeam(join_request)
 
-        log_with_time("Joint to the team")
+        log_with_time(f"{self.get_name()} Joint to the team")
         on_join()
         self._play_routine = executor.submit(self._response_watcher, response_iterator, processor)
         return self._play_finished
 
     def stop(self):
-        log_with_time("stopping bot - you may need to kill the process if there is no messages coming from the server")
+        log_with_time(f"{self.get_name()} stopping bot - you may need to kill the process if there is no messages coming from the server")
         self._play_finished.set()
 
     def wait(self):
@@ -118,7 +120,7 @@ class LugoClient(server_grpc.GameServicer):
             for snapshot in response_iterator:
                 if snapshot.state == server_pb2.GameSnapshot.State.OVER:
                     log_with_time(
-                        f" All done! {server_pb2.GameSnapshot.State.OVER}")
+                        f"{self.get_name()} All done! {server_pb2.GameSnapshot.State.OVER}")
                     break
                 elif self._play_finished.is_set():
                     break
@@ -129,20 +131,19 @@ class LugoClient(server_grpc.GameServicer):
                         orders = processor(orders, snapshot)
                     except Exception as e:
                         traceback.print_exc()
-                        log_with_time(f"bot processor error: {e}")
+                        log_with_time(f"{self.get_name()}bot processor error: {e}")
 
                     if orders:
                         self._client.SendOrders(orders)
                     else:
                         log_with_time(
-                            f"[turn #{snapshot.turn}] bot {self.teamSide}-{self.number} did not return orders")
+                            f"{self.get_name()} [turn #{snapshot.turn}] bot {self.teamSide}-{self.number} did not return orders")
                 elif snapshot.state == server_pb2.GameSnapshot.State.GET_READY:
-                    log_with_time(f"[turn #{snapshot.turn}] getting ready")
                     self.getting_ready_handler(snapshot)
 
             self._play_finished.set()
         except Exception as e:
-            log_with_time(f"internal error processing turn: {e}")
+            log_with_time(f"{self.get_name()} internal error processing turn: {e}")
             traceback.print_exc()
 
 def NewClientFromConfig(config: EnvVarLoader, initialPosition: Point) -> LugoClient:

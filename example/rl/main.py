@@ -17,7 +17,7 @@ from src.lugo4py.loader import EnvVarLoader
 from concurrent.futures import ThreadPoolExecutor
 # Training settings
 train_iterations = 50
-steps_per_iteration = 240
+steps_per_iteration = 600
 
 grpc_address = "localhost:5000"
 grpc_insecure = True
@@ -49,10 +49,10 @@ def my_training_function(training_ctrl: TrainingController):
                     0, len(possible_actions) - 1)]
 
                 # Then we pass the action to our update method
-                reward, done = training_ctrl.update(action)
+                result = training_ctrl.update(action)
                 # Now we should reward our model with the reward value
-                scores[i] += reward
-                if done:
+                scores[i] += result["reward"]
+                if result["done"]:
                     # No more steps
                     print(f"End of train_iteration {i}, score:", scores[i])
                     break
@@ -73,7 +73,7 @@ if __name__ == "__main__":
 
     # Our bot strategy defines our bot initial position based on its number
     initial_region = map.getRegion(5, 4)
-    print('\n main: Training bot map \n', initial_region.getCenter())
+
     # Now we can create the bot. We will use a shortcut to create the client from the config, but we could use the
     # client constructor as well
     lugo_client = LugoClient(
@@ -97,15 +97,14 @@ if __name__ == "__main__":
     # First, starting the game server
     # If you want to train playing against another bot, then you should start the other team first.
     # If you want to train using two teams, you should start the away team, then start the training bot, and finally start the home team
-    # await gym.start(lugo_client)
-    print('Chamando a withzombie')
+
     WithZombiePlayers = gym.withZombiePlayers(grpc_address)
-    print('=============+++++++')
+
     playersExecutor = ThreadPoolExecutor(22)
     WithZombiePlayers.start(lugo_client, playersExecutor)
 
     def signal_handler(sig, frame):
-        print("Stop requested")
+        print("Stop requested\n")
         lugo_client.stop()
         sys.exit(0)
 

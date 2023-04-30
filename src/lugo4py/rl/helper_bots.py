@@ -33,7 +33,7 @@ def chaser_turn_handler(team_side, player_number, order_set, snapshot):
     order_set.addOrders(reader.makeOrderMoveMaxSpeed(
         me.getPosition(), snapshot.getBall().getPosition()))
     order_set.setDebugMessage(
-        f"{'HOME' if team_side == 0 else 'AWAY'}-{player_number} #{snapshot.getTurn()} - chasing ball")
+        f"{'HOME' if team_side == 0 else 'AWAY'}-{player_number} #{snapshot.turn} - chasing ball")
     return order_set
 
 
@@ -69,7 +69,7 @@ def newCustomHelperPlayer(team_side, player_number, game_server_address, turn_ha
         )
 
         def muted():
-            print("jointed ")
+            None
 
         # print(f'Vai connectar {team_side} and {player_number}\n')
         lugo_client.play(executor, turn_handler_function, muted)
