@@ -92,7 +92,7 @@ if __name__ == "__main__":
 
     gymExecutor = ThreadPoolExecutor()
     # Now we can create the Gym, which will control all async work and allow us to focus on the learning part
-    gym = Gym(gymExecutor, rc, bot, my_training_function, {"debugging_log": True})
+    gym = Gym(gymExecutor, rc, bot, my_training_function, {"debugging_log": False})
 
     # First, starting the game server
     # If you want to train playing against another bot, then you should start the other team first.
