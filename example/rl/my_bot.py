@@ -1,20 +1,19 @@
 import random
-from typing import Any, Dict, Union, List, Optional
-from src.lugo4py.snapshot import GameSnapshotReader, Mapper, DIRECTION, Region
-from src.lugo4py import orientation
+import time
+from typing import Any, List, Optional
 
+from src.lugo4py import orientation
+from src.lugo4py.protos import physics_pb2
 from src.lugo4py.protos import server_pb2 as Lugo
 from src.lugo4py.protos.server_pb2 import GameSnapshot
-from src.lugo4py.protos import physics_pb2
-from src.lugo4py import geo
-
 from src.lugo4py.rl.remote_control import RemoteControl
-import time
+from src.lugo4py.rl.interfaces import BotTrainer
+from src.lugo4py.snapshot import GameSnapshotReader, Mapper, Region
 
 TRAINING_PLAYER_NUMBER = 5
 
 
-class MyBotTrainer:
+class MyBotTrainer(BotTrainer):
     def __init__(self, remote_control: RemoteControl):
         self.remote_control = remote_control
         self.Mapper = None
