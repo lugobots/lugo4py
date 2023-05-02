@@ -76,10 +76,10 @@ if __name__ == "__main__":
     print('main: Training bot team side = ', team_side)
     # The map will help us see the field in quadrants (called regions) instead of working with coordinates
     # The Mapper will translate the coordinates based on the side the bot is playing on
-    map = Mapper(20, 10, lugo.TeamSide.HOME)
+    mapper = Mapper(20, 10, lugo.TeamSide.HOME)
 
     # Our bot strategy defines our bot initial position based on its number
-    initial_region = map.getRegion(5, 4)
+    initial_region = mapper.get_region(5, 4)
 
     # Now we can create the bot. We will use a shortcut to create the client from the config, but we could use the
     # client constructor as well
@@ -89,7 +89,7 @@ if __name__ == "__main__":
         "",
         team_side,
         TRAINING_PLAYER_NUMBER,
-        initial_region.getCenter()
+        initial_region.get_center()
     )
     # The RemoteControl is a gRPC client that will connect to the Game Server and change the element positions
     rc = RemoteControl()
@@ -102,10 +102,10 @@ if __name__ == "__main__":
     gym = Gym(gym_executor, rc, bot, my_training_function, {"debugging_log": False})
 
     players_executor = ThreadPoolExecutor(22)
-    gym.withZombiePlayers(grpc_address).start(lugo_client, players_executor)
+    gym.with_zombie_players(grpc_address).start(lugo_client, players_executor)
 
 
-    def signal_handler(sig, frame):
+    def signal_handler(_, __):
         print("Stop requested\n")
         lugo_client.stop()
         gym.stop()

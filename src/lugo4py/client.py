@@ -2,16 +2,16 @@ import grpc
 import time
 from concurrent.futures import ThreadPoolExecutor
 import traceback
-from typing import Callable, Awaitable, Iterator
+from typing import Callable, Iterator
 
 from . import lugo
 
 from .protos import server_pb2
 from .protos import server_pb2_grpc as server_grpc
 
-from .stub import Bot, PLAYER_STATE
+from .interface import Bot, PLAYER_STATE
 from .loader import EnvVarLoader
-from .snapshot import defineState
+from .snapshot import define_state
 import threading
 
 PROTOCOL_VERSION = "1.0.0"
@@ -24,7 +24,7 @@ class LugoClient(server_grpc.GameServicer):
 
     def __init__(self, server_add, grpc_insecure, token, teamSide, number, init_position):
         self._client = None
-        self.getting_ready_handler = None
+        self.getting_ready_handler = lambda snapshot: None
         self.callback = Callable[[lugo.GameSnapshot], lugo.OrderSet]
         self.serverAdd = server_add + "?t=" + str(teamSide) + "-" + str(number)
         self.grpc_insecure = grpc_insecure
@@ -57,24 +57,24 @@ class LugoClient(server_grpc.GameServicer):
         return self._bot_start(executor, callback, on_join)
 
     def play_as_bot(self, executor: ThreadPoolExecutor, bot: Bot, on_join: Callable[[], None]) -> threading.Event:
-        self.set_ready_handler(bot.gettingReady)
+        self.set_ready_handler(bot.getting_ready)
         log_with_time(f"{self.get_name()} Playing as bot")
 
         def processor(orders: lugo.OrderSet, snapshot: lugo.GameSnapshot) -> lugo.OrderSet:
-            player_state = defineState(
+            player_state = define_state(
                 snapshot, self.number, self.teamSide)
             if self.number == 1:
-                orders = bot.asGoalkeeper(
+                orders = bot.as_goalkeeper(
                     orders, snapshot, player_state)
             else:
                 if player_state == PLAYER_STATE.DISPUTING_THE_BALL:
-                    orders = bot.onDisputing(orders, snapshot)
+                    orders = bot.on_disputing(orders, snapshot)
                 elif player_state == PLAYER_STATE.DEFENDING:
-                    orders = bot.onDefending(orders, snapshot)
+                    orders = bot.on_defending(orders, snapshot)
                 elif player_state == PLAYER_STATE.SUPPORTING:
-                    orders = bot.onSupporting(orders, snapshot)
+                    orders = bot.on_supporting(orders, snapshot)
                 elif player_state == PLAYER_STATE.HOLDING_THE_BALL:
-                    orders = bot.onHolding(orders, snapshot)
+                    orders = bot.on_holding(orders, snapshot)
             return orders
 
         return self._bot_start(executor, processor, on_join)
@@ -88,9 +88,9 @@ class LugoClient(server_grpc.GameServicer):
             channel = grpc.secure_channel(
                 self.serverAdd, grpc.ssl_channel_credentials())
         try:
-            grpc.channel_ready_future(channel).result(timeout=30)
+            grpc.channel_ready_future(channel).result(timeout=5)
         except grpc.FutureTimeoutError:
-            raise Exception("timed out waiting to connect to the game server")
+            raise Exception(f"timed out waiting to connect to the game server ({self.serverAdd})")
 
         self.channel = channel
         self._client = server_grpc.GameStub(channel)
@@ -159,11 +159,11 @@ class LugoClient(server_grpc.GameServicer):
 def NewClientFromConfig(config: EnvVarLoader, initialPosition: lugo.Point) -> LugoClient:
     log_with_time("Creating a new client from config")
     return LugoClient(
-        config.getGrpcUrl(),
-        config.getGrpcInsecure(),
-        config.getBotToken(),
-        config.getBotTeamSide(),
-        config.getBotNumber(),
+        config.get_grpc_url(),
+        config.get_grpc_insecure(),
+        config.get_bot_token(),
+        config.get_bot_team_side(),
+        config.get_bot_number(),
         initialPosition,
     )
 

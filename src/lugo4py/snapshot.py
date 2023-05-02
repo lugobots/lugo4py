@@ -1,17 +1,11 @@
-from .loader import EnvVarLoader
-from .goal import Goal
-from .mapper import *
-from . import orientation
+from . import geo, interface
+from . import orientation, lugo
 from . import specs
-from .stub import *
-from . import geo
-
-from .protos.physics_pb2 import Point, Vector
+from .goal import Goal
 from .protos import server_pb2
+from .protos.physics_pb2 import Point
 
 
-# import * as Lugo from './proto_exported'
-# import * as rl from "./rl/index"
 class Direction(object):
     pass
 
@@ -27,15 +21,15 @@ DIRECTION.FORWARD_LEFT = 6,
 DIRECTION.FORWARD_RIGHT = 7
 
 homeGoalCenter = Point()
-homeGoalCenter.x = (0)
+homeGoalCenter.x = 0
 homeGoalCenter.y = int(specs.MAX_Y_COORDINATE / 2)
 
 homeGoalTopPole = Point()
-homeGoalTopPole.x = (0)
+homeGoalTopPole.x = 0
 homeGoalTopPole.y = int(specs.GOAL_MAX_Y)
 
 homeGoalBottomPole = Point()
-homeGoalBottomPole.x = (0)
+homeGoalBottomPole.x = 0
 homeGoalBottomPole.y = int(specs.GOAL_MIN_Y)
 
 awayGoalCenter = Point()
@@ -52,28 +46,28 @@ awayGoalBottomPole.y = int(specs.GOAL_MIN_Y)
 
 
 class GameSnapshotReader:
-    def __init__(self, snapshot: server_pb2.GameSnapshot, mySide: server_pb2.Team.Side):
+    def __init__(self, snapshot: lugo.GameSnapshot, my_side: lugo.TeamSide):
         self.snapshot = snapshot
-        self.mySide = mySide
+        self.mySide = my_side
 
-    def get_my_team(self) -> server_pb2.Team:
-        return self.getTeam(self.mySide)
+    def get_my_team(self) -> lugo.Team:
+        return self.get_team(self.mySide)
 
-    def get_opponent_team(self) -> server_pb2.Team:
-        return self.getTeam(self.getOpponentSide())
+    def get_opponent_team(self) -> lugo.Team:
+        return self.get_team(self.get_opponent_side())
 
-    def get_team(self, side) -> server_pb2.Team:
+    def get_team(self, side) -> lugo.Team:
         if side == server_pb2.Team.Side.HOME:
             return self.snapshot.home_team
 
         return self.snapshot.away_team
 
-    def is_ball_holder(self, player: server_pb2.Player) -> bool:
+    def is_ball_holder(self, player: lugo.Player) -> bool:
         ball = self.snapshot.ball
 
         return ball.holder != None and ball.holder.team_side == player.team_side and ball.holder.number == player.number
 
-    def get_opponent_side(self) -> server_pb2.Team.Side:
+    def get_opponent_side(self) -> lugo.TeamSide:
         if self.mySide == server_pb2.Team.Side.HOME:
             return server_pb2.Team.Side.AWAY
 
@@ -85,7 +79,7 @@ class GameSnapshotReader:
 
         return awayGoal
 
-    def get_ball(self) -> server_pb2.Ball:
+    def get_ball(self) -> lugo.Ball:
         return self.snapshot.ball
 
     def get_opponent_goal(self) -> Goal:
@@ -94,7 +88,7 @@ class GameSnapshotReader:
 
         return homeGoal
 
-    def get_player(self, side: server_pb2.Team.Side, number: int) -> server_pb2.Player:
+    def get_player(self, side: server_pb2.Team.Side, number: int) -> lugo.Player:
         team = self.get_team(side)
         if team is None:
             return None
@@ -104,10 +98,10 @@ class GameSnapshotReader:
                 return player
         return None
 
-    def make_order_move_max_speed(self, origin: Point, target: Point) -> server_pb2.Order:
+    def make_order_move_max_speed(self, origin: lugo.Point, target: lugo.Point) -> lugo.Order:
         return self.make_order_move(origin, target, specs.PLAYER_MAX_SPEED)
 
-    def make_order_move(self, origin: Point, target: Point, speed: int) -> server_pb2.Order:
+    def make_order_move(self, origin: lugo.Point, target: lugo.Point, speed: int) -> lugo.Order:
         if origin.x == target.x and origin.y == target.y:
             # a vector cannot have zeroed direction. In this case, the player will just be stopped
             return self.make_order_move_from_vector(orientation.NORTH, 0)
@@ -116,7 +110,7 @@ class GameSnapshotReader:
         direction = geo.normalize(direction)
         return self.make_order_move_from_vector(direction, speed)
 
-    def make_order_move_from_vector(self, direction: Vector, speed: int) -> server_pb2.Order:
+    def make_order_move_from_vector(self, direction: lugo.Vector, speed: int) -> lugo.Order:
         order = server_pb2.Order()
 
         order.move.velocity.direction.x = direction.x
@@ -124,7 +118,7 @@ class GameSnapshotReader:
         order.move.velocity.speed = speed
         return order
 
-    def make_order_move_by_direction(self, direction) -> server_pb2.Order:
+    def make_order_move_by_direction(self, direction) -> lugo.Order:
         if direction == DIRECTION.FORWARD:
             direction_target = orientation.EAST
             if self.mySide == server_pb2.Team.Side.AWAY:
@@ -170,14 +164,14 @@ class GameSnapshotReader:
 
         return self.make_order_move_from_vector(direction_target, specs.PLAYER_MAX_SPEED)
 
-    def makeOrderJump(origin: Point, target: Point, speed: int) -> server_pb2.Order:
+    def make_order_jump(self, origin: lugo.Point, target: lugo.Point, speed: int) -> lugo.Order:
         direction = orientation.EAST
-        if (origin.x != target.x or origin.y != target.y):
+        if origin.x != target.x or origin.y != target.y:
             # a vector cannot have zeroed direction. In this case, the player will just be stopped
             direction = geo.NewVector(origin, target)
             direction = geo.normalize(direction)
 
-        velocity = server_pb2.Velocity()
+        velocity = lugo.new_velocity()
         velocity.direction = direction
         velocity.speed = speed
 
@@ -188,22 +182,22 @@ class GameSnapshotReader:
         order.Jump = jump
         return order
 
-    def makeOrderKick(ball: server_pb2.Ball, target: Point, speed: int) -> server_pb2.Order:
-        ballExpectedDirection = geo.NewVector(ball.getPosition(), target)
+    def make_order_kick(self, ball: lugo.Ball, target: Point, speed: int) -> lugo.Order:
+        ball_expected_direction = geo.NewVector(ball.position, target)
 
         # the ball velocity is summed to the kick velocity, so we have to consider the current ball direction
-        diffVector = geo.subVector(ballExpectedDirection, ball.getVelocity().getDirection())
+        diff_vector = geo.subVector(ball_expected_direction, ball.velocity.direction)
 
-        newVelocity = server_pb2.Velocity()
-        newVelocity.speed = speed
-        newVelocity.direction = geo.normalize(diffVector)
+        new_velocity = server_pb2.Velocity()
+        new_velocity.speed = speed
+        new_velocity.direction = geo.normalize(diff_vector)
 
         kick = server_pb2.Order.Kick()
-        kick.Velocity = newVelocity
+        kick.Velocity = new_velocity
         return kick
 
-    def makeOrderKickMaxSpeed(self, ball: server_pb2.Ball, target: Point) -> server_pb2.Order:
-        return self.makeOrderKick(ball, target, specs.BALL_MAX_SPEED)
+    def make_order_kick_max_speed(self, ball: lugo.Ball, target: Point) -> lugo.Order:
+        return self.make_order_kick(ball, target, specs.BALL_MAX_SPEED)
 
     def makeOrderCatch(self) -> server_pb2.Order:
         order = server_pb2.Order()
@@ -225,24 +219,24 @@ homeGoal = Goal(
 )
 
 
-def defineState(snapshot: server_pb2.GameSnapshot, playerNumber: int, side: server_pb2.Team.Side) -> PLAYER_STATE:
-    if (not snapshot or not snapshot.ball):
+def define_state(snapshot: lugo.GameSnapshot, player_number: int, side: lugo.TeamSide) -> interface.PLAYER_STATE:
+    if not snapshot or not snapshot.ball:
         raise AttributeError('invalid snapshot state - cannot define player state')
 
     reader = GameSnapshotReader(snapshot, side)
-    me = reader.getPlayer(side, playerNumber)
-    if (me is None):
+    me = reader.get_player(side, player_number)
+    if me is None:
         raise AttributeError('could not find the bot in the snapshot - cannot define player state')
 
-    ballHolder = snapshot.ball.holder
+    ball_holder = snapshot.ball.holder
 
-    if ballHolder.number == 0:
-        return PLAYER_STATE.DISPUTING_THE_BALL
+    if ball_holder.number == 0:
+        return interface.PLAYER_STATE.DISPUTING_THE_BALL
 
-    if (ballHolder.team_side == side):
-        if (ballHolder.number == playerNumber):
-            return PLAYER_STATE.HOLDING_THE_BALL
+    if ball_holder.team_side == side:
+        if ball_holder.number == player_number:
+            return interface.PLAYER_STATE.HOLDING_THE_BALL
 
-        return PLAYER_STATE.SUPPORTING
+        return interface.PLAYER_STATE.SUPPORTING
 
-    return PLAYER_STATE.DEFENDING
+    return interface.PLAYER_STATE.DEFENDING

@@ -1,17 +1,15 @@
-import asyncio
+import threading
+
 import grpc
-from datetime import datetime, timedelta
+
+from .. import lugo
 from ..protos.remote_pb2 import (
     PauseResumeRequest, NextTurnRequest, NextOrderRequest,
     BallProperties, PlayerProperties, GameProperties,
-    ResumeListeningRequest, ResumeListeningResponse
+    ResumeListeningRequest
 )
 from ..protos.remote_pb2_grpc import RemoteStub
-from ..protos.physics_pb2 import Point, Velocity
-from ..protos.server_pb2 import GameSnapshot, Team
-from ..client import LugoClient
-import time
-import threading
+
 
 class RemoteControl:
     def __init__(self):
@@ -25,14 +23,14 @@ class RemoteControl:
             raise Exception("timed out waiting to connect to the game server")
         self.client = RemoteStub(channel)
 
-    def pauseResume(self):
+    def pause_resume(self):
         req = PauseResumeRequest()
         try:
             return self.client.PauseOrResume(req)
         except Exception:
             raise Exception("[Remote Control] Failed to pause/resume the game")
 
-    def resumeListening(self, waiter: threading.Event):
+    def resume_listening(self, waiter: threading.Event):
         req = ResumeListeningRequest()
         try:
             result = self.client.ResumeListeningPhase(req)
@@ -41,35 +39,35 @@ class RemoteControl:
         except Exception:
             raise Exception("[Remote Control] Failed to resume listening phase the game")
 
-
-    def nextTurn(self):
+    def next_turn(self):
         req = NextTurnRequest()
         try:
             return self.client.NextTurn(req)
         except Exception:
             raise Exception("[Remote Control] Failed to play to next turn")
 
-    def nextOrder(self):
+    def next_order(self):
         req = NextOrderRequest()
         try:
             return self.client.NextOrder(req)
         except Exception:
             raise Exception("[Remote Control] Failed to play to next order")
 
-    def setBallProps(self, position: Point, velocity: Velocity):
+    def set_ball_rops(self, position: lugo.Point, velocity: lugo.Velocity):
         req = BallProperties(position=position, velocity=velocity)
         response = self.client.SetBallProperties(req)
         return response
 
-    def setPlayerProps(self, teamSide: Team.Side, playerNumber: int, newPosition: Point, newVelocity: Velocity):
+    def set_player_props(self, team_side: lugo.TeamSide, player_number: int, new_position: lugo.Point,
+                         new_velocity: lugo.Velocity):
         req = PlayerProperties(
-            side=teamSide, number=playerNumber,
-            position=newPosition, velocity=newVelocity
+            side=team_side, number=player_number,
+            position=new_position, velocity=new_velocity
         )
         response = self.client.SetPlayerProperties(req)
         return response
 
-    def setGameProps(self, turnNumber: int):
-        req = GameProperties(turn=turnNumber)
+    def set_game_props(self, turn: int):
+        req = GameProperties(turn=turn)
         response = self.client.SetGameProperties(req)
         return response

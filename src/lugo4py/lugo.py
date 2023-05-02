@@ -1,8 +1,6 @@
 from enum import Enum, IntEnum
 from typing import List
 from .protos import physics_pb2
-from protorpc import messages
-
 
 class Vector:
     def __init__(self, x=0.0, y=0.0):
@@ -26,7 +24,7 @@ class Velocity:
         self.speed = speed
 
 
-def NewVelocity(point: Point) -> Velocity:
+def new_velocity(point: Point) -> Velocity:
     v = physics_pb2.Velocity()
     v.direction.x = point.x
     v.direction.y = point.y

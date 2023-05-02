@@ -36,7 +36,7 @@ class Gym:
         self.helperPlayers = None
         self.players = []
 
-    def start(self, lugoClient: LugoClient, executor: ThreadPoolExecutor):
+    def start(self, lugo_client: LugoClient, executor: ThreadPoolExecutor):
         hasStarted = False
 
         def play_callback(orderSet, snapshot):
@@ -47,9 +47,9 @@ class Gym:
         def trigger_listening() -> None:
             nonlocal hasStarted
             if hasStarted is False:
-                waiterResumeListening = threading.Event()
-                executor.submit(self.remoteControl.resumeListening, waiterResumeListening)
-                waiterResumeListening.wait()
+                waiter = threading.Event()
+                executor.submit(self.remoteControl.resume_listening, waiter)
+                waiter.wait()
 
         def on_join() -> None:
             self._debug('The main bot is connected!! Starting to connect the zombies')
@@ -59,16 +59,16 @@ class Gym:
             self._debug('helpers are done')
             trigger_listening()
 
-        lugoClient.play(executor, play_callback, on_join)
-        return lugoClient
+        lugo_client.play(executor, play_callback, on_join)
+        return lugo_client
 
     def stop(self):
         self.trainingCrl.stop()
         for player in self.players:
             player.stop()
 
-    def withZombiePlayers(self, game_server_address):
-        self._debug('Entering withZombiePlayers\n')
+    def with_zombie_players(self, game_server_address):
+        self._debug('Entering with_zombie_players\n')
         self.gameServerAddress = game_server_address
         self.helperPlayers = create_helper_players
         return self

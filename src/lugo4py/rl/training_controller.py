@@ -131,7 +131,7 @@ class TrainingCrl(TrainingController):
 
 
             waiterResumeListening = threading.Event()
-            self.trainingExecutor.submit(self.remoteControl.resumeListening, waiterResumeListening)
+            self.trainingExecutor.submit(self.remoteControl.resume_listening, waiterResumeListening)
             waiterResumeListening.wait()
 
             waiter.wait(timeout=3)
@@ -139,7 +139,7 @@ class TrainingCrl(TrainingController):
                 raise RuntimeError(
                     "timed out waiting for the next listening state - check the training controller")
 
-            self.logger(f'resumeListening: {new_snapshot.turn}')
+            self.logger(f'resume_listening: {new_snapshot.turn}')
 
             return new_snapshot
         except Exception as e:

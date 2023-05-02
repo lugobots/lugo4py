@@ -26,34 +26,34 @@ Implement the [Bot interface](./src/lugo4py/stub.py) to handle each player state
 
 class Bot(ABC):
     @abstractmethod
-    def onDisputing (self, orderSet: lugo4py.OrderSet, snapshot: GameSnapshot) -> OrderSet:
-        # onDisputing is called when no one has the ball possession
+    def on_disputing (self, orderSet: lugo4py.OrderSet, snapshot: GameSnapshot) -> OrderSet:
+        # on_disputing is called when no one has the ball possession
         pass
 
     @abstractmethod
-    def onDefending (self, orderSet: OrderSet, snapshot: GameSnapshot) -> OrderSet:
+    def on_defending (self, orderSet: OrderSet, snapshot: GameSnapshot) -> OrderSet:
         # OnDefending is called when an opponent player has the ball possession
         pass
 
     @abstractmethod
-    def onHolding (self, orderSet: OrderSet, snapshot: GameSnapshot) -> OrderSet:
+    def on_holding (self, orderSet: OrderSet, snapshot: GameSnapshot) -> OrderSet:
         # OnHolding is called when this bot has the ball possession
         pass
 
     @abstractmethod
-    def onSupporting (self, orderSet: OrderSet, snapshot: GameSnapshot) -> OrderSet:
+    def on_supporting (self, orderSet: OrderSet, snapshot: GameSnapshot) -> OrderSet:
         # OnSupporting is called when a teammate player has the ball possession
         pass
 
     @abstractmethod
-    def asGoalkeeper (self, orderSet: OrderSet, snapshot: GameSnapshot, state: PLAYER_STATE) -> OrderSet:
+    def as_goalkeeper (self, orderSet: OrderSet, snapshot: GameSnapshot, state: PLAYER_STATE) -> OrderSet:
         # AsGoalkeeper is only called when this bot is the goalkeeper (number 1). This method is called on every turn,
         # and the player state is passed at the last parameter.
         pass
 
     @abstractmethod
-    def gettingReady (self, snapshot: GameSnapshot):
-        # gettingReady will be called before the game starts and after a goal event. You will only need to implement
+    def getting_ready (self, snapshot: GameSnapshot):
+        # getting_ready will be called before the game starts and after a goal event. You will only need to implement
         # this method in very rare cases.
         pass
 ```
@@ -101,10 +101,9 @@ And you may define how many columns/rows your field will be divided into.
 ```python
 
 # let's create a map 10x5 
-map = Mapper(10, 5, config.getBotTeamSide())
+map = Mapper(10, 5, config.get_bot_team_side())
 
-
-targetRegion = map.getRegion(5, 2)
+targetRegion = map.get_region(5, 2)
 ```
 
 #### The Region
