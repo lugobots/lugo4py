@@ -4,9 +4,9 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 
 from example.rl.my_bot import MyBotTrainer, TRAINING_PLAYER_NUMBER
+from src.lugo4py import lugo
 from src.lugo4py.client import LugoClient
 from src.lugo4py.mapper import Mapper
-from src.lugo4py.protos import server_pb2
 from src.lugo4py.rl.gym import Gym
 from src.lugo4py.rl.remote_control import RemoteControl
 from src.lugo4py.rl.training_controller import TrainingController
@@ -72,11 +72,11 @@ def my_training_function(training_ctrl: TrainingController, stop_event: threadin
 
 
 if __name__ == "__main__":
-    team_side = server_pb2.Team.Side.HOME
+    team_side = lugo.TeamSide.HOME
     print('main: Training bot team side = ', team_side)
     # The map will help us see the field in quadrants (called regions) instead of working with coordinates
     # The Mapper will translate the coordinates based on the side the bot is playing on
-    map = Mapper(20, 10, server_pb2.Team.Side.HOME)
+    map = Mapper(20, 10, lugo.TeamSide.HOME)
 
     # Our bot strategy defines our bot initial position based on its number
     initial_region = map.getRegion(5, 4)

@@ -1,7 +1,9 @@
-from ..protos.server_pb2 import GameSnapshot, OrderSet
 from abc import ABC, abstractmethod
-import asyncio
-from typing import Tuple, Callable, Awaitable, Any
+from typing import Callable, Any
+
+from .. import lugo
+
+
 
 #
 # The TrainingController is passed to your Training function to give you control of the game flow.
@@ -68,7 +70,7 @@ class BotTrainer(ABC):
     # @param {GameSnapshot} snapshot - The current game state
     #
     @abstractmethod
-    def getState(self, snapshot: GameSnapshot):
+    def getState(self, snapshot: lugo.GameSnapshot):
         pass
 
     #
@@ -85,7 +87,7 @@ class BotTrainer(ABC):
     #
     #
     @abstractmethod
-    def play(self, orderSet: OrderSet, snapshot: GameSnapshot, action) -> OrderSet:
+    def play(self, orderSet: lugo.OrderSet, snapshot: lugo.GameSnapshot, action) -> lugo.OrderSet:
         pass
 
     #
@@ -100,7 +102,7 @@ class BotTrainer(ABC):
     # @param {GameSnapshot} newSnapshot - The current game state
     #
     @abstractmethod
-    def evaluate(self, previousSnapshot: GameSnapshot, newSnapshot: GameSnapshot) -> Any:
+    def evaluate(self, previousSnapshot: lugo.GameSnapshot, newSnapshot: lugo.GameSnapshot) -> Any:
         pass
 
 
