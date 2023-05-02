@@ -2,10 +2,8 @@ import random
 import time
 from typing import Any, List, Optional
 
-from src.lugo4py import orientation
-from src.lugo4py.protos import physics_pb2
+from src.lugo4py import orientation, lugo
 from src.lugo4py.protos import server_pb2 as Lugo
-from src.lugo4py.protos.server_pb2 import GameSnapshot
 from src.lugo4py.rl.remote_control import RemoteControl
 from src.lugo4py.rl.interfaces import BotTrainer
 from src.lugo4py.snapshot import GameSnapshotReader, Mapper, Region
@@ -18,7 +16,7 @@ class MyBotTrainer(BotTrainer):
         self.remote_control = remote_control
         self.Mapper = None
 
-    def createNewInitialState(self, data: Any):
+    def set_environment(self, data: Any):
         self.Mapper = Mapper(20, 10, Lugo.Team.Side.HOME)
 
         for i in range(1, 12):
@@ -34,19 +32,19 @@ class MyBotTrainer(BotTrainer):
         self.remote_control.setGameProps(1)
         return self.remote_control.setBallProps(ball_pos, ball_velocity).game_snapshot
 
-    def getState(self, snapshot: GameSnapshot):
+    def get_state(self, snapshot: lugo.GameSnapshot):
         return [True, True, False]
 
-    def play(self, orderSet: Lugo.OrderSet, snapshot: GameSnapshot, action: Any) -> Lugo.OrderSet:
-        reader = GameSnapshotReader(snapshot, Lugo.Team.Side.HOME)
-        dir = reader.makeOrderMoveByDirection(action)
-        orderSet.orders.extend([dir])
-        return orderSet
+    def play(self, order_set: lugo.OrderSet, snapshot: lugo.GameSnapshot, action: Any) -> lugo.OrderSet:
+        reader = GameSnapshotReader(snapshot, lugo.TeamSide.HOME)
+        dir = reader.make_order_move_by_direction(action)
+        order_set.orders.extend([dir])
+        return order_set
 
-    def evaluate(self, previousSnapshot: GameSnapshot, newSnapshot: GameSnapshot) -> Any:
-        return {"done": newSnapshot.turn >= 600, "reward": random.random()}
+    def evaluate(self, previous_snapshot: lugo.GameSnapshot, new_snapshot: lugo.GameSnapshot) -> Any:
+        return {"done": new_snapshot.turn >= 600, "reward": random.random()}
 
-    def _randomPlayerPos(self, Mapper: Mapper, side: Lugo.Team.Side, number: int) -> None:
+    def _randomPlayerPos(self, mapper: Mapper, side: Lugo.Team.Side, number: int) -> None:
         min_col = 10
         max_col = 17
         min_row = 1
@@ -56,17 +54,12 @@ class MyBotTrainer(BotTrainer):
 
         random_col = random.randint(min_col, max_col)
         random_row = random.randint(min_row, max_row)
-        random_position = Mapper.getRegion(random_col, random_row).getCenter()
+        random_position = mapper.getRegion(random_col, random_row).getCenter()
         self.remote_control.setPlayerProps(side, number, random_position, random_velocity)
 
-    def _create_velocity(self, speed: float, direction) -> physics_pb2.Velocity:
-        velocity = physics_pb2.Velocity()
-
-        north_vector = physics_pb2.Vector()
-        north_vector.x = 0
-        north_vector.y = 1
+    def _create_velocity(self, speed: float, direction) -> lugo.Velocity:
+        velocity = lugo.NewVelocity(direction)
         velocity.speed = speed
-        #velocity.direction = north_vector
         return velocity
 
     def find_opponent(self, reader: GameSnapshotReader) -> List[List[bool]]:

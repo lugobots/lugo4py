@@ -29,19 +29,19 @@ class TrainingCrl(TrainingController):
         self.resumeListeningPhase = lambda action: print(
             'resumeListeningPhase not defined yet - should wait the initialise it on the first "update" call')
 
-    def setEnvironment(self, data):
+    def set_environment(self, data):
         self.logger('Reset state')
         try:
-            self.lastSnapshot = self.bot.createNewInitialState(data)
+            self.lastSnapshot = self.bot.set_environment(data)
         except Exception as e:
             print('bot trainer failed to create initial state: ', e)
             raise e
 
-    def getState(self):
+    def get_state(self):
         try:
             self.cycleSeq = self.cycleSeq + 1
             self.logger('get state')
-            return self.bot.getState(self.lastSnapshot)
+            return self.bot.get_state(self.lastSnapshot)
         except Exception as e:
             print('bot trainer failed to return inputs from a particular state', e)
             raise e

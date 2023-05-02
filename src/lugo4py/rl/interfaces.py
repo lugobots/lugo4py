@@ -4,7 +4,6 @@ from typing import Callable, Any
 from .. import lugo
 
 
-
 #
 # The TrainingController is passed to your Training function to give you control of the game flow.
 #
@@ -15,7 +14,7 @@ class TrainingController(ABC):
     # This method should be called whenever your need to reset the game to an initial state.
     #
     @abstractmethod
-    def setEnvironment(self, data):
+    def set_environment(self, data):
         pass
 
     #
@@ -23,7 +22,7 @@ class TrainingController(ABC):
     # return the tensors used to feed your network.
     #
     @abstractmethod
-    def getState(self):
+    def get_state(self):
         pass
 
     #
@@ -35,6 +34,7 @@ class TrainingController(ABC):
     @abstractmethod
     def update(self, action):
         pass
+
     #
     # Stops the training
     #
@@ -42,6 +42,8 @@ class TrainingController(ABC):
     @abstractmethod
     def stop(self):
         pass
+
+
 #
 # The BotTrainer is used by the Gym class to play the game as a bot and to control the game state when needed.
 # It is NOT your learning agent!
@@ -57,7 +59,7 @@ class BotTrainer(ABC):
     # use the remote control client to change the game elements' position/state
     #
     @abstractmethod
-    def createNewInitialState(self, data):
+    def set_environment(self, data):
         pass
 
     #
@@ -70,7 +72,7 @@ class BotTrainer(ABC):
     # @param {GameSnapshot} snapshot - The current game state
     #
     @abstractmethod
-    def getState(self, snapshot: lugo.GameSnapshot):
+    def get_state(self, snapshot: lugo.GameSnapshot):
         pass
 
     #
@@ -87,7 +89,7 @@ class BotTrainer(ABC):
     #
     #
     @abstractmethod
-    def play(self, orderSet: lugo.OrderSet, snapshot: lugo.GameSnapshot, action) -> lugo.OrderSet:
+    def play(self, order_set: lugo.OrderSet, snapshot: lugo.GameSnapshot, action) -> lugo.OrderSet:
         pass
 
     #
@@ -102,7 +104,7 @@ class BotTrainer(ABC):
     # @param {GameSnapshot} newSnapshot - The current game state
     #
     @abstractmethod
-    def evaluate(self, previousSnapshot: lugo.GameSnapshot, newSnapshot: lugo.GameSnapshot) -> Any:
+    def evaluate(self, previous_snapshot: lugo.GameSnapshot, new_snapshot: lugo.GameSnapshot) -> Any:
         pass
 
 

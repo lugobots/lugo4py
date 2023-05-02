@@ -39,7 +39,7 @@ def my_training_function(training_ctrl: TrainingController, stop_event: threadin
     for i in range(train_iterations):
         try:
             scores.append(0)
-            training_ctrl.setEnvironment({"iteration": i})
+            training_ctrl.set_environment({"iteration": i})
 
             for j in range(steps_per_iteration):
                 if stop_event.is_set():
@@ -48,7 +48,7 @@ def my_training_function(training_ctrl: TrainingController, stop_event: threadin
                     print("trainning stopped")
                     return
 
-                _ = training_ctrl.getState()
+                _ = training_ctrl.get_state()
 
                 # The sensors would feed our training model, which would return the next action
                 action = possible_actions[random.randint(
