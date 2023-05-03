@@ -1,65 +1,118 @@
-import sys
-import os
-import asyncio
+import random
+import signal
+import threading
+from concurrent.futures import ThreadPoolExecutor
 
-# both src are necessary to account for execution on docker and on project folder
-sys.path.append("../../src")
-sys.path.append("./src")
+from example.rl.my_bot import MyBotTrainer, TRAINING_PLAYER_NUMBER
+from src.lugo4py import lugo
+from src.lugo4py.client import LugoClient
+from src.lugo4py.mapper import Mapper
+from src.lugo4py.rl.gym import Gym
+from src.lugo4py.rl.remote_control import RemoteControl
+from src.lugo4py.rl.training_controller import TrainingController
+from src.lugo4py.snapshot import DIRECTION
 
-from lugo4py.mapper import Mapper
-from lugo4py.client import LugoClient
-from lugo4py import rl
-from lugo4py.protos import server_pb2
-from my_bot import MyBotTrainer, PLAYER_NUM
+# Training settings
+train_iterations = 50
+steps_per_iteration = 600
 
-# training settings
-trainIterations = 500
-gamesPerIteration = 10
-maxStepsPerGame = 60
-hiddenLayerSizes = [4, 4]
-learningRate = 0.95
-discountRate = 0.05
-testingGames = 20
+grpc_address = "localhost:5000"
+grpc_insecure = True
 
-grpcAddress = "localhost:5000"
-grpcInsecure = True
-model_path = 'file: ./model_output'
+stop = threading.Event()
 
-async def myTrainingFunction(trainingCtrl: rl.TrainingController) :
-    print("Let's start training")
-    policyNet = None
-    
-    await trainingCtrl.stop()
 
-async def async_main():
-    teamSide = server_pb2.Team.Side.HOME
-    playerNumber = PLAYER_NUM
+def my_training_function(training_ctrl: TrainingController, stop_event: threading.Event):
+    print("Let's train")
 
-    # the map will help us to see the field in quadrants (called regions) instead of working with coordinates
-    map = Mapper(10, 6, server_pb2.Team.Side.HOME)
+    possible_actions = [
+        DIRECTION.FORWARD,
+        DIRECTION.BACKWARD,
+        DIRECTION.LEFT,
+        DIRECTION.RIGHT,
+        DIRECTION.BACKWARD_LEFT,
+        DIRECTION.BACKWARD_RIGHT,
+        DIRECTION.FORWARD_RIGHT,
+        DIRECTION.FORWARD_LEFT,
+    ]
+    scores = []
+    for i in range(train_iterations):
+        try:
+            scores.append(0)
+            training_ctrl.set_environment({"iteration": i})
 
-    # our bot strategy defines our bot initial position based on its number
-    initialRegion = map.getRegion(1, 1)
+            for j in range(steps_per_iteration):
+                if stop_event.is_set():
+                    training_ctrl.stop()
+                    stop.set()
+                    print("trainning stopped")
+                    return
 
-    # now we can create the bot. We will use a shortcut to create the client from the config, but we could use the
+                _ = training_ctrl.get_state()
+
+                # The sensors would feed our training model, which would return the next action
+                action = possible_actions[random.randint(
+                    0, len(possible_actions) - 1)]
+
+                # Then we pass the action to our update method
+                result = training_ctrl.update(action)
+                # Now we should reward our model with the reward value
+                scores[i] += result["reward"]
+                if result["done"]:
+                    # No more steps
+                    print(f"End of train_iteration {i}, score:", scores[i])
+                    break
+
+        except Exception as e:
+            print("error during trainning session:", e)
+
+    training_ctrl.stop()
+    print("Training is over, scores:", scores)
+    stop.set()
+
+
+if __name__ == "__main__":
+    team_side = lugo.TeamSide.HOME
+    print('main: Training bot team side = ', team_side)
+    # The map will help us see the field in quadrants (called regions) instead of working with coordinates
+    # The Mapper will translate the coordinates based on the side the bot is playing on
+    mapper = Mapper(20, 10, lugo.TeamSide.HOME)
+
+    # Our bot strategy defines our bot initial position based on its number
+    initial_region = mapper.get_region(5, 4)
+
+    # Now we can create the bot. We will use a shortcut to create the client from the config, but we could use the
     # client constructor as well
-    lugoClient = LugoClient(
-        grpcAddress,
-        grpcInsecure,
+    lugo_client = LugoClient(
+        grpc_address,
+        grpc_insecure,
         "",
-        teamSide,
-        playerNumber,
-        initialRegion.getCenter())
-
-    rc = rl.RemoteControl()
-    await rc.connect(grpcAddress)
+        team_side,
+        TRAINING_PLAYER_NUMBER,
+        initial_region.get_center()
+    )
+    # The RemoteControl is a gRPC client that will connect to the Game Server and change the element positions
+    rc = RemoteControl()
+    rc.connect(grpc_address)  # Pass address here
 
     bot = MyBotTrainer(rc)
-    gym = rl.Gym(rc, bot, myTrainingFunction, debugging_log = False)
 
-    await gym.withZombiePlayers(grpcAddress).start(lugoClient)
+    gym_executor = ThreadPoolExecutor()
+    # Now we can create the Gym, which will control all async work and allow us to focus on the learning part
+    gym = Gym(gym_executor, rc, bot, my_training_function, {"debugging_log": False})
 
-if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(async_main())
-    loop.close()
+    players_executor = ThreadPoolExecutor(22)
+    gym.with_zombie_players(grpc_address).start(lugo_client, players_executor)
+
+
+    def signal_handler(_, __):
+        print("Stop requested\n")
+        lugo_client.stop()
+        gym.stop()
+        players_executor.shutdown(wait=True)
+        gym_executor.shutdown(wait=True)
+
+
+    signal.signal(signal.SIGINT, signal_handler)
+
+    stop.wait()

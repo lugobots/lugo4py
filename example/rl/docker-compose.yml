@@ -2,7 +2,7 @@ version: '3.9'
 services:
   game_server:
     image: lugobots/server:${SERVER_VERSION:-latest}
-    command: play --dev-mode --timer-mode=wait
+    command: play --dev-mode --timer-mode=remote
     ports:
       - "8080:8080"
     healthcheck:
@@ -16,67 +16,78 @@ services:
     environment:
       - BOT_NUMBER=1
       - BOT_TEAM=home
-      - BOT_GRPC_URL=game_server:5000
+      - BOT_GRPC_URL=game_server:5000;
+      - BOT_GRPC_INSECURE=true
   player_home_02:
     image: pybot:latest
     environment:
       - BOT_NUMBER=2
       - BOT_TEAM=home
       - BOT_GRPC_URL=game_server:5000
+      - BOT_GRPC_INSECURE=true
   player_home_03:
     image: pybot:latest
     environment:
       - BOT_NUMBER=3
       - BOT_TEAM=home
       - BOT_GRPC_URL=game_server:5000
+      - BOT_GRPC_INSECURE=true
   player_home_04:
     image: pybot:latest
     environment:
       - BOT_NUMBER=4
       - BOT_TEAM=home
       - BOT_GRPC_URL=game_server:5000
+      - BOT_GRPC_INSECURE=true
   player_home_05:
     image: pybot:latest
     environment:
       - BOT_NUMBER=5
       - BOT_TEAM=home
       - BOT_GRPC_URL=game_server:5000
+      - BOT_GRPC_INSECURE=true
   player_home_06:
     image: pybot:latest
     environment:
       - BOT_NUMBER=6
       - BOT_TEAM=home
       - BOT_GRPC_URL=game_server:5000
+      - BOT_GRPC_INSECURE=true
   player_home_07:
     image: pybot:latest
     environment:
       - BOT_NUMBER=7
       - BOT_TEAM=home
       - BOT_GRPC_URL=game_server:5000
+      - BOT_GRPC_INSECURE=true
   player_home_08:
     image: pybot:latest
     environment:
       - BOT_NUMBER=8
       - BOT_TEAM=home
       - BOT_GRPC_URL=game_server:5000
+      - BOT_GRPC_INSECURE=true
   player_home_09:
     image: pybot:latest
     environment:
       - BOT_NUMBER=9
       - BOT_TEAM=home
       - BOT_GRPC_URL=game_server:5000
+      - BOT_GRPC_INSECURE=true
   player_home_10:
     image: pybot:latest
     environment:
       - BOT_NUMBER=10
       - BOT_TEAM=home
       - BOT_GRPC_URL=game_server:5000
+      - BOT_GRPC_INSECURE=true
   player_home_11:
     image: pybot:latest
     environment:
       - BOT_NUMBER=11
       - BOT_TEAM=home
       - BOT_GRPC_URL=game_server:5000
+      - BOT_GRPC_INSECURE=true
 
   player_away_01:
     image: lugobots/the-dummies-go:latest

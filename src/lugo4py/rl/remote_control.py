@@ -1,112 +1,73 @@
+import threading
+
 import grpc
-from ..protos import remote_pb2_grpc
-from ..protos.remote_pb2 import  PauseResumeRequest, BallProperties, NextTurnRequest, PlayerProperties, GameProperties, ResumeListeningRequest
-from ..protos.physics_pb2 import Point, Velocity
-from ..protos.physics_pb2 import GameSnapshot, Team
+
+from .. import lugo
+from ..protos.remote_pb2 import (
+    PauseResumeRequest, NextTurnRequest, NextOrderRequest,
+    BallProperties, PlayerProperties, GameProperties,
+    ResumeListeningRequest
+)
+from ..protos.remote_pb2_grpc import RemoteStub
 
 
-class RemoteControl(object):
-    
+class RemoteControl:
     def __init__(self):
         self.client = None
 
-    async def connect(grpcAddress: str):
-        pass
-        # await new Promise<void>((resolve, reject) => {
-        #     this.client = new remote.RemoteClient(grpcAddress, grpc.credentials.createInsecure())
-        #     const deadline = new Date();
-        #     deadline.setSeconds(deadline.getSeconds() + 5);
-        #     this.client.waitForReady(deadline, (err) => {
-        #         if (err) {
-        #             console.log(`ERROR: `, err)
-        #             reject(err)
-        #             return
-        #         }
-        #         resolve()
-        #     })
-        # })
+    def connect(self, grpc_address: str) -> None:
+        channel = grpc.insecure_channel(grpc_address)
+        try:
+            grpc.channel_ready_future(channel).result(timeout=15)
+        except grpc.FutureTimeoutError:
+            raise Exception("timed out waiting to connect to the game server")
+        self.client = RemoteStub(channel)
 
-    async def pauseResume(self):
-        pauseReq = PauseResumeRequest()
-        # return new Promise<void>((resolve, reject) => {
-        #     const resp = this.client.pauseOrResume(pauseReq, (err) => {
-        #         if (err) {
-        #             console.log(`ERROR: `, err)
-        #             reject(err)
-        #             return
-        #         }
-        #         resolve()
-        #     })
-        # })
+    def pause_resume(self):
+        req = PauseResumeRequest()
+        try:
+            return self.client.PauseOrResume(req)
+        except Exception:
+            raise Exception("[Remote Control] Failed to pause/resume the game")
 
-    async def resumeListening(self):
+    def resume_listening(self, waiter: threading.Event):
         req = ResumeListeningRequest()
-        # return new Promise<void>((resolve, reject) => {
-        #     const resp = this.client.resumeListeningPhase(req, (err) => {
-        #         if (err) {
-        #             console.log(`ERROR: `, err)
-        #             reject(err)
-        #             return
-        #         }
-        #         resolve()
-        #     })
-        # })
+        try:
+            result = self.client.ResumeListeningPhase(req)
+            waiter.set()
+            return result
+        except Exception:
+            raise Exception("[Remote Control] Failed to resume listening phase the game")
 
-    async def nextTurn(self):
-        nextTurnReq = NextTurnRequest()
-        # return new Promise<void>((resolve, reject) => {
-        #     const resp = this.client.nextTurn(nextTurnReq, (err) => {
-        #         if (err) {
-        #             console.log(`ERROR: `, err)
-        #             reject(err)
-        #             return
-        #         }
-        #         resolve()
-        #     })
-        # })
+    def next_turn(self):
+        req = NextTurnRequest()
+        try:
+            return self.client.NextTurn(req)
+        except Exception:
+            raise Exception("[Remote Control] Failed to play to next turn")
 
-    async def setBallProps(self, position: Point, velocity: Velocity):
-        ballPropReq = BallProperties()
-        ballPropReq.setVelocity(velocity)
-        ballPropReq.setPosition(position)
-        # return new Promise<GameSnapshot>((resolve, reject) => {
-        #     const resp = this.client.setBallProperties(ballPropReq, (err, commandResponse) => {
-        #         if (err) {
-        #             console.log(`ERROR: ballPropReq`, ballPropReq, err)
-        #             reject(err)
-        #             return
-        #         }
-        #         resolve(commandResponse.getGameSnapshot())
-        #     })
-        # })
+    def next_order(self):
+        req = NextOrderRequest()
+        try:
+            return self.client.NextOrder(req)
+        except Exception:
+            raise Exception("[Remote Control] Failed to play to next order")
 
-    async def setPlayerProps(teamSide: Team.Side, playerNumber: number, newPosition: Point, newVelocity: Velocity):
-        playerProperties = PlayerProperties()
-        playerProperties.setVelocity(newVelocity)
-        playerProperties.setPosition(newPosition)
-        playerProperties.setSide(teamSide)
-        playerProperties.setNumber(playerNumber)
-        # return new Promise<GameSnapshot>((resolve, reject) => {
-        #     const resp = this.client.setPlayerProperties(playerProperties, (err, commandResponse) => {
-        #         if (err) {
-        #             console.log(`ERROR: (playerProperties)`, err)
-        #             reject(err)
-        #             return
-        #         }
-        #         resolve(commandResponse.getGameSnapshot())
-        #     })
-        # })
+    def set_ball_rops(self, position: lugo.Point, velocity: lugo.Velocity):
+        req = BallProperties(position=position, velocity=velocity)
+        response = self.client.SetBallProperties(req)
+        return response
 
-    async def setTurn(self, turnNumber):
-        gameProp = GameProperties()
-        # gameProp.setTurn(turnNumber)
-        # return new Promise<GameSnapshot>((resolve, reject) => {
-        #     const resp = this.client.setGameProperties(gameProp, (err, commandResponse) => {
-        #         if (err) {
-        #             console.log(`ERROR: `, err)
-        #             reject(err)
-        #             return
-        #         }
-        #         resolve(commandResponse.getGameSnapshot())
-        #     })
-        # })
+    def set_player_props(self, team_side: lugo.TeamSide, player_number: int, new_position: lugo.Point,
+                         new_velocity: lugo.Velocity):
+        req = PlayerProperties(
+            side=team_side, number=player_number,
+            position=new_position, velocity=new_velocity
+        )
+        response = self.client.SetPlayerProperties(req)
+        return response
+
+    def set_game_props(self, turn: int):
+        req = GameProperties(turn=turn)
+        response = self.client.SetGameProperties(req)
+        return response

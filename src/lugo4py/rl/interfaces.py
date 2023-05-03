@@ -1,17 +1,20 @@
-from ..protos.server_pb2 import GameSnapshot, OrderSet
-from  abc import ABC, abstractmethod
-import asyncio
-from typing import Tuple, Callable, Awaitable, Any
+from abc import ABC, abstractmethod
+from typing import Callable, Any
+
+from .. import lugo
+
 
 #
 # The TrainingController is passed to your Training function to give you control of the game flow.
 #
+
+
 class TrainingController(ABC):
     #
-    #This method should be called whenever your need to reset the game to an initial state.
+    # This method should be called whenever your need to reset the game to an initial state.
     #
     @abstractmethod
-    async def setRandomState(self):
+    def set_environment(self, data):
         pass
 
     #
@@ -19,7 +22,7 @@ class TrainingController(ABC):
     # return the tensors used to feed your network.
     #
     @abstractmethod
-    async def getInputs(self):
+    def get_state(self):
         pass
 
     #
@@ -29,18 +32,24 @@ class TrainingController(ABC):
     # @returns {Promise<{reward: number, done: boolean}>}
     #
     @abstractmethod
-    async def update(self, action):
+    def update(self, action):
         pass
+
     #
     # Stops the training
     #
+
     @abstractmethod
-    async def stop(self):
+    def stop(self):
         pass
+
+
 #
 # The BotTrainer is used by the Gym class to play the game as a bot and to control the game state when needed.
 # It is NOT your learning agent!
 #
+
+
 class BotTrainer(ABC):
 
     #
@@ -50,7 +59,7 @@ class BotTrainer(ABC):
     # use the remote control client to change the game elements' position/state
     #
     @abstractmethod
-    async def createNewInitialState(self):
+    def set_environment(self, data):
         pass
 
     #
@@ -63,7 +72,7 @@ class BotTrainer(ABC):
     # @param {GameSnapshot} snapshot - The current game state
     #
     @abstractmethod
-    async def getInputs (self, snapshot: GameSnapshot):
+    def get_state(self, snapshot: lugo.GameSnapshot):
         pass
 
     #
@@ -80,7 +89,7 @@ class BotTrainer(ABC):
     #
     #
     @abstractmethod
-    async def play(self, orderSet: OrderSet, snapshot: GameSnapshot, action):
+    def play(self, order_set: lugo.OrderSet, snapshot: lugo.GameSnapshot, action) -> lugo.OrderSet:
         pass
 
     #
@@ -95,9 +104,8 @@ class BotTrainer(ABC):
     # @param {GameSnapshot} newSnapshot - The current game state
     #
     @abstractmethod
-    async def evaluate(previousSnapshot: GameSnapshot, newSnapshot: GameSnapshot):
+    def evaluate(self, previous_snapshot: lugo.GameSnapshot, new_snapshot: lugo.GameSnapshot) -> Any:
         pass
 
 
-
-# TrainingFunction = Callable[TrainingController, Awaitable[None]]
+TrainingFunction = Callable[[TrainingController], None]
