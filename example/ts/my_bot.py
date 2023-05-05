@@ -1,14 +1,24 @@
 import random
 import time
+from enum import Enum
 from typing import Any, List, Optional
 
-from src.lugo4py import orientation, lugo
+from src.lugo4py import orientation, lugo, specs, geo
 from src.lugo4py.mapper import Mapper, Region
 from src.lugo4py.rl.interfaces import BotTrainer
 from src.lugo4py.rl.remote_control import RemoteControl
 from src.lugo4py.snapshot import GameSnapshotReader
 
 TRAINING_PLAYER_NUMBER = 5
+
+
+class SensorArea(Enum):
+    FRONT = 0
+    FRONT_LEFT = 1
+    FRONT_RIGHT = 2
+    BACK = 3
+    BACK_LEFT = 4
+    BACK_RIGHT = 5
 
 
 class MyBotTrainer(BotTrainer):
@@ -33,8 +43,79 @@ class MyBotTrainer(BotTrainer):
         return self.remote_control.set_ball_rops(ball_pos, ball_velocity).game_snapshot
 
     def get_state(self, snapshot: lugo.GameSnapshot):
-        # print(f"BNOT GET_STATE?!!! ")
-        return [True, True, False]
+        reader = GameSnapshotReader(snapshot, lugo.TeamSide.HOME)
+        me = self.get_me(reader)
+
+        grid_cols = 10
+        grid_rows = 5
+        # using a more wide grid for performance reasons
+        sensorMapper = Mapper(grid_cols, grid_rows, lugo.TeamSide.HOME)
+        myGridPos = sensorMapper.get_region_from_point(me.position)
+        opponentGoalGridPos = sensorMapper.get_region_from_point(reader.get_opponent_goal().get_center())
+
+        return [
+            (opponentGoalGridPos.get_col() - myGridPos.get_col()) / grid_cols,
+            (opponentGoalGridPos.get_row() - myGridPos.get_row()) / grid_rows,
+            self.steps_to_obstacle_within_area(reader, SensorArea.FRONT),
+            self.steps_to_obstacle_within_area(reader, SensorArea.FRONT_LEFT),
+            self.steps_to_obstacle_within_area(reader, SensorArea.FRONT_RIGHT),
+            self.steps_to_obstacle_within_area(reader, SensorArea.BACK),
+            self.steps_to_obstacle_within_area(reader, SensorArea.BACK_LEFT),
+            self.steps_to_obstacle_within_area(reader, SensorArea.BACK_RIGHT)
+        ]
+
+    def steps_to_obstacle_within_area(self, reader: GameSnapshotReader, sensor_area):
+        # specs.PLAYER_MAX_SPEED is a step
+        sensor_range = specs.PLAYER_MAX_SPEED * 15
+        frontward_view = sensor_range
+        sides_view = sensor_range
+        backward_view = sensor_range
+
+        my_pos = self.get_me(reader).position
+
+        bot_point = [my_pos.x, my_pos.y]
+
+        # Each region is a triangle where the start point is the bot position and the other two vertex
+        # are defined by the sensor direction:
+
+        # front
+        point_a = [my_pos.x + frontward_view, my_pos.y + sides_view]
+        point_b = [my_pos.x + frontward_view, my_pos.y - sides_view]
+        if sensor_area == SensorArea.FRONT_LEFT:
+            point_a = [my_pos.x, my_pos.y + sides_view]
+            point_b = [my_pos.x + frontward_view, my_pos.y + sides_view]
+        elif sensor_area == SensorArea.FRONT_RIGHT:
+            point_a = [my_pos.x, my_pos.y - sides_view]
+            point_b = [my_pos.x + frontward_view, my_pos.y - sides_view]
+        elif sensor_area == SensorArea.BACK:
+            point_a = [my_pos.x - backward_view, my_pos.y + sides_view]
+            point_b = [my_pos.x - backward_view, my_pos.y - sides_view]
+        elif sensor_area == SensorArea.BACK_LEFT:
+            point_a = [my_pos.x, my_pos.y + sides_view]
+            point_b = [my_pos.x - backward_view, my_pos.y + sides_view]
+        elif sensor_area == SensorArea.BACK_RIGHT:
+            point_a = [my_pos.x, my_pos.y - sides_view]
+            point_b = [my_pos.x - backward_view, my_pos.y - sides_view]
+
+        get_opponents = reader.get_team(reader.get_opponent_side()).players
+        nearest_opponent_dist = None
+        for opponent in get_opponents:
+            opponent_point = [opponent.position.x, opponent.position.y]
+            if is_point_in_polygon(opponent_point, [bot_point, point_a, point_b]):
+                dist_to_bot = abs(geo.distance_between_points(opponent.position, my_pos))
+                if nearest_opponent_dist is None or nearest_opponent_dist > dist_to_bot:
+                    nearest_opponent_dist = dist_to_bot
+
+        if nearest_opponent_dist is not None:
+            return nearest_opponent_dist / sensor_range
+
+        return 1
+
+    def get_me(self, reader: GameSnapshotReader) -> lugo.Player:
+        me = reader.get_player(lugo.TeamSide.HOME, TRAINING_PLAYER_NUMBER)
+        if me is None:
+            raise ValueError("did not find myself in the game")
+        return me
 
     def play(self, order_set: lugo.OrderSet, snapshot: lugo.GameSnapshot, action: Any) -> lugo.OrderSet:
         print(f"GOT ACTION -> {action}")
@@ -95,3 +176,19 @@ def delay(ms: float) -> None:
 
 def random_integer(min_val: int, max_val: int) -> int:
     return random.randint(min_val, max_val)
+
+
+def is_point_in_polygon(point, polygon):
+    inside = False
+    j = len(polygon) - 1
+    for i in range(len(polygon)):
+        xi, yi = polygon[i][0], polygon[i][1]
+        xj, yj = polygon[j][0], polygon[j][1]
+
+        intersect = ((yi > point[1]) != (yj > point[1])) and (point[0] < (xj - xi) * (point[1] - yi) / (yj - yi) + xi)
+        if intersect:
+            inside = not inside
+
+        j = i
+
+    return inside
