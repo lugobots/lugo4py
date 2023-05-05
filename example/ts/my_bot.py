@@ -33,9 +33,11 @@ class MyBotTrainer(BotTrainer):
         return self.remote_control.set_ball_rops(ball_pos, ball_velocity).game_snapshot
 
     def get_state(self, snapshot: lugo.GameSnapshot):
+        # print(f"BNOT GET_STATE?!!! ")
         return [True, True, False]
 
     def play(self, order_set: lugo.OrderSet, snapshot: lugo.GameSnapshot, action: Any) -> lugo.OrderSet:
+        print(f"GOT ACTION -> {action}")
         reader = GameSnapshotReader(snapshot, lugo.TeamSide.HOME)
         direction = reader.make_order_move_by_direction(action)
         order_set.orders.extend([direction])

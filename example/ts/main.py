@@ -1,39 +1,31 @@
-import random
 import signal
 import threading
 from concurrent.futures import ThreadPoolExecutor
+
 import reverb
-
+from tf_agents.agents.dqn import dqn_agent
+from tf_agents.drivers import py_driver
+from tf_agents.environments import tf_py_environment
+from tf_agents.networks import sequential
+from tf_agents.policies import py_tf_eager_policy
+from tf_agents.policies import random_tf_policy
+from tf_agents.replay_buffers import reverb_replay_buffer
+from tf_agents.replay_buffers import reverb_utils
 from tf_agents.specs import array_spec
+from tf_agents.specs import tensor_spec
+from tf_agents.trajectories import time_step as ts
+from tf_agents.utils import common
+from tf_agents.networks import q_network
 
-from example.rl.my_bot import MyBotTrainer, TRAINING_PLAYER_NUMBER
+from example.ts.my_bot import MyBotTrainer, TRAINING_PLAYER_NUMBER
 from src.lugo4py import lugo
 from src.lugo4py.client import LugoClient
 from src.lugo4py.mapper import Mapper
 from src.lugo4py.rl.gym import Gym
 from src.lugo4py.rl.remote_control import RemoteControl
 from src.lugo4py.rl.training_controller import TrainingController
-from src.lugo4py.snapshot import DIRECTION
 
-import tensorflow as tf
-
-from tf_agents.agents.dqn import dqn_agent
-from tf_agents.drivers import py_driver
-# from tf_agents.environments import suite_gym
-from tf_agents.environments import tf_py_environment
-# from tf_agents.eval import metric_utils
-# from tf_agents.metrics import tf_metrics
-from tf_agents.networks import sequential
-from tf_agents.policies import py_tf_eager_policy
-from tf_agents.policies import random_tf_policy
-from tf_agents.replay_buffers import reverb_replay_buffer
-from tf_agents.replay_buffers import reverb_utils
-# from tf_agents.trajectories import trajectory
-from tf_agents.specs import tensor_spec
-from tf_agents.environments.utils import validate_py_environment
-from tf_agents.utils import common
-
-from tf_agents.trajectories import time_step as ts
+# import tensorflow as tf
 
 num_iterations = 20000  # @param {type:"integer"}
 
@@ -51,7 +43,6 @@ eval_interval = 1000  # @param {type:"integer"}
 import numpy as np
 import tensorflow as tf
 from tf_agents.environments.py_environment import PyEnvironment
-from tf_agents.specs.array_spec import ArraySpec, BoundedArraySpec
 
 
 # class GameEnvironment(PyEnvironment):
@@ -112,30 +103,40 @@ class GameEnvironment(PyEnvironment):
             shape=(), dtype=np.int32, minimum=0, maximum=self.num_actions, name='action')
         self._observation_spec = array_spec.BoundedArraySpec(
             shape=(self.num_sensors,), dtype=np.float32, minimum=0, name='observation')
+        self.training_ctrl = training_ctrl
+
         self.__setState(0)
         self._episode_ended = False
 
+
     def action_spec(self):
+        #print(f"action spec - called")
         return self._action_spec
 
     def __setState(self, value):
+        #print(f"__setState - calledssssss")
+        st = self.training_ctrl.get_state()
         self._state = np.array([value, 0.029, 0.9287, 0.029, 0.9287, 0.029], dtype=np.float32)
 
     def observation_spec(self):
+        #print(f"observation_spec - called")
         return self._observation_spec
 
     def _reset(self):
+        #print(f"_reset - called")
+        st = self.training_ctrl.set_environment(None)
         self.__setState(0)
         self._episode_ended = False
         return ts.restart(self._state)
 
     def _step(self, action):
-
+        #print(f"_step - called")
+        st = self.training_ctrl.update(action)
         if self._episode_ended:
             # The last action ended the episode. Ignore the current action and start
             # a new episode.
             return self.reset()
-        print(f"Got an action {action}")
+        #print(f"Got an action {action}")
         # Make sure episodes don't go on forever.
         if action == 1:
             self._episode_ended = True
@@ -167,7 +168,9 @@ def my_training_function(training_ctrl: TrainingController, stop_event: threadin
     print("Let's train")
 
     lugoEnv = GameEnvironment(training_ctrl)
-    validate_py_environment(lugoEnv, episodes=5)
+    # print("Let's train1")
+    # validate_py_environment(lugoEnv, episodes=2)
+    # print("Let's train2")
 
     train_env = tf_py_environment.TFPyEnvironment(lugoEnv)
 
@@ -194,7 +197,12 @@ def my_training_function(training_ctrl: TrainingController, stop_event: threadin
         kernel_initializer=tf.keras.initializers.RandomUniform(
             minval=-0.03, maxval=0.03),
         bias_initializer=tf.keras.initializers.Constant(-0.2))
-    q_net = sequential.Sequential(dense_layers + [q_values_layer])
+    # q_net = sequential.Sequential(dense_layers + [q_values_layer])
+
+    q_net = q_network.QNetwork(
+        train_env.time_step_spec().observation,
+        train_env.action_spec(),
+        fc_layer_params=(100,))
 
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
@@ -202,7 +210,7 @@ def my_training_function(training_ctrl: TrainingController, stop_event: threadin
 
     agent = dqn_agent.DqnAgent(
         train_env.time_step_spec(),
-        train_env.action_spec(),
+        train_env.action_spec()
         q_network=q_net,
         optimizer=optimizer,
         td_errors_loss_fn=common.element_wise_squared_loss,
@@ -270,8 +278,10 @@ def my_training_function(training_ctrl: TrainingController, stop_event: threadin
             agent.collect_policy, use_tf_function=True),
         [rb_observer],
         max_steps=collect_steps_per_iteration)
-
+    print(f"START THE FUN")
     for _ in range(num_iterations):
+
+        print(f"num_iterations #{num_iterations}")
 
         # Collect a few steps and save to the replay buffer.
         time_step, _ = collect_driver.run(time_step)
