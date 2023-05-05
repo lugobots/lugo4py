@@ -48,10 +48,10 @@ awayGoalBottomPole.y = int(specs.GOAL_MIN_Y)
 class GameSnapshotReader:
     def __init__(self, snapshot: lugo.GameSnapshot, my_side: lugo.TeamSide):
         self.snapshot = snapshot
-        self.mySide = my_side
+        self.my_side = my_side
 
     def get_my_team(self) -> lugo.Team:
-        return self.get_team(self.mySide)
+        return self.get_team(self.my_side)
 
     def get_opponent_team(self) -> lugo.Team:
         return self.get_team(self.get_opponent_side())
@@ -68,13 +68,13 @@ class GameSnapshotReader:
         return ball.holder != None and ball.holder.team_side == player.team_side and ball.holder.number == player.number
 
     def get_opponent_side(self) -> lugo.TeamSide:
-        if self.mySide == server_pb2.Team.Side.HOME:
+        if self.my_side == server_pb2.Team.Side.HOME:
             return server_pb2.Team.Side.AWAY
 
         return server_pb2.Team.Side.HOME
 
     def get_my_goal(self) -> Goal:
-        if self.mySide == server_pb2.Team.Side.HOME:
+        if self.my_side == server_pb2.Team.Side.HOME:
             return homeGoal
 
         return awayGoal
@@ -83,7 +83,7 @@ class GameSnapshotReader:
         return self.snapshot.ball
 
     def get_opponent_goal(self) -> Goal:
-        if self.mySide == server_pb2.Team.Side.HOME:
+        if self.my_side == server_pb2.Team.Side.HOME:
             return awayGoal
 
         return homeGoal
@@ -106,7 +106,7 @@ class GameSnapshotReader:
             # a vector cannot have zeroed direction. In this case, the player will just be stopped
             return self.make_order_move_from_vector(orientation.NORTH, 0)
 
-        direction = geo.NewVector(origin, target)
+        direction = geo.new_vector(origin, target)
         direction = geo.normalize(direction)
         return self.make_order_move_from_vector(direction, speed)
 
@@ -121,42 +121,42 @@ class GameSnapshotReader:
     def make_order_move_by_direction(self, direction) -> lugo.Order:
         if direction == DIRECTION.FORWARD:
             direction_target = orientation.EAST
-            if self.mySide == server_pb2.Team.Side.AWAY:
+            if self.my_side == server_pb2.Team.Side.AWAY:
                 direction_target = orientation.WEST
 
         elif direction == DIRECTION.BACKWARD:
             direction_target = orientation.WEST
-            if self.mySide == server_pb2.Team.Side.AWAY:
+            if self.my_side == server_pb2.Team.Side.AWAY:
                 direction_target = orientation.EAST
 
         elif direction == DIRECTION.LEFT:
             direction_target = orientation.NORTH
-            if self.mySide == server_pb2.Team.Side.AWAY:
+            if self.my_side == server_pb2.Team.Side.AWAY:
                 direction_target = orientation.SOUTH
 
         elif direction == DIRECTION.RIGHT:
             direction_target = orientation.SOUTH
-            if self.mySide == server_pb2.Team.Side.AWAY:
+            if self.my_side == server_pb2.Team.Side.AWAY:
                 direction_target = orientation.NORTH
 
         elif direction == DIRECTION.BACKWARD_LEFT:
             direction_target = orientation.NORTH_WEST
-            if self.mySide == server_pb2.Team.Side.AWAY:
+            if self.my_side == server_pb2.Team.Side.AWAY:
                 direction_target = orientation.SOUTH_EAST
 
         elif direction == DIRECTION.BACKWARD_RIGHT:
             direction_target = orientation.SOUTH_WEST
-            if self.mySide == server_pb2.Team.Side.AWAY:
+            if self.my_side == server_pb2.Team.Side.AWAY:
                 direction_target = orientation.NORTH_EAST
 
         elif direction == DIRECTION.FORWARD_LEFT:
             direction_target = orientation.NORTH_EAST
-            if self.mySide == server_pb2.Team.Side.AWAY:
+            if self.my_side == server_pb2.Team.Side.AWAY:
                 direction_target = orientation.SOUTH_WEST
 
         elif direction == DIRECTION.FORWARD_RIGHT:
             direction_target = orientation.SOUTH_EAST
-            if self.mySide == server_pb2.Team.Side.AWAY:
+            if self.my_side == server_pb2.Team.Side.AWAY:
                 direction_target = orientation.NORTH_WEST
 
         else:
@@ -168,7 +168,7 @@ class GameSnapshotReader:
         direction = orientation.EAST
         if origin.x != target.x or origin.y != target.y:
             # a vector cannot have zeroed direction. In this case, the player will just be stopped
-            direction = geo.NewVector(origin, target)
+            direction = geo.new_vector(origin, target)
             direction = geo.normalize(direction)
 
         velocity = lugo.new_velocity()
@@ -183,10 +183,10 @@ class GameSnapshotReader:
         return order
 
     def make_order_kick(self, ball: lugo.Ball, target: Point, speed: int) -> lugo.Order:
-        ball_expected_direction = geo.NewVector(ball.position, target)
+        ball_expected_direction = geo.new_vector(ball.position, target)
 
         # the ball velocity is summed to the kick velocity, so we have to consider the current ball direction
-        diff_vector = geo.subVector(ball_expected_direction, ball.velocity.direction)
+        diff_vector = geo.sub_vector(ball_expected_direction, ball.velocity.direction)
 
         new_velocity = server_pb2.Velocity()
         new_velocity.speed = speed
