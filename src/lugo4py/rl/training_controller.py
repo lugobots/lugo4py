@@ -33,6 +33,7 @@ class TrainingCrl(TrainingController):
         self.logger('Reset state')
         try:
             self.lastSnapshot = self.bot.set_environment(data)
+            return self.bot.get_state(self.lastSnapshot)
         except Exception as e:
             print('bot trainer failed to create initial state: ', e)
             raise e

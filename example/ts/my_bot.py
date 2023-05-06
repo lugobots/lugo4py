@@ -43,6 +43,8 @@ class MyBotTrainer(BotTrainer):
         return self.remote_control.set_ball_rops(ball_pos, ball_velocity).game_snapshot
 
     def get_state(self, snapshot: lugo.GameSnapshot):
+        if snapshot is None:
+            raise ValueError("got None as snapshot - something went wrong")
         reader = GameSnapshotReader(snapshot, lugo.TeamSide.HOME)
         me = self.get_me(reader)
 
@@ -118,14 +120,14 @@ class MyBotTrainer(BotTrainer):
         return me
 
     def play(self, order_set: lugo.OrderSet, snapshot: lugo.GameSnapshot, action: Any) -> lugo.OrderSet:
-        print(f"GOT ACTION -> {action}")
+       # print(f"GOT ACTION -> {action}")
         reader = GameSnapshotReader(snapshot, lugo.TeamSide.HOME)
         direction = reader.make_order_move_by_direction(action)
         order_set.orders.extend([direction])
         return order_set
 
     def evaluate(self, previous_snapshot: lugo.GameSnapshot, new_snapshot: lugo.GameSnapshot) -> Any:
-        return {"done": new_snapshot.turn >= 600, "reward": random.random()}
+        return {"done": new_snapshot.turn >= 80, "reward": random.random()}
 
     def _random_player_pos(self, mapper: Mapper, side: lugo.TeamSide, number: int) -> None:
         min_col = 10

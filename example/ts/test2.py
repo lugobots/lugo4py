@@ -133,12 +133,12 @@ class GameEnvironment(PyEnvironment):
 
     def __init__(self, training_ctrl: TrainingController):
         self.num_actions = 8
-        self.num_sensors = 6
+        self.num_sensors = 8
 
         self._action_spec = array_spec.BoundedArraySpec(
             shape=(), dtype=np.int32, minimum=0, maximum=self.num_actions - 1, name='action')
         self._observation_spec = array_spec.BoundedArraySpec(
-            shape=(self.num_sensors,), dtype=np.float32, minimum=0, name='observation')
+            shape=(self.num_sensors,), dtype=np.float32, minimum=np.zeros(self.num_sensors), maximum=np.ones(self.num_sensors), name='observation')
         self.training_ctrl = training_ctrl
 
         self._reset()
@@ -147,19 +147,18 @@ class GameEnvironment(PyEnvironment):
         print(f"action spec - called")
         return self._action_spec
 
-    def __setState(self, value):
-        print(f"__setState - calledssssss")
-        st = self.training_ctrl.get_state()
-        self._state = np.array([value, 0.029, 0.9287, 0.029, 0.9287, 0.029], dtype=np.float32)
+    def __setState(self, new_state):
+        print(f"__setState - calledssssss", new_state)
+        self._state = np.array(new_state, dtype=np.float32)
 
     def observation_spec(self):
         print(f"observation_spec - called")
         return self._observation_spec
 
     def _reset(self):
-        print(f"_reset - WAS called")
-        st = self.training_ctrl.set_environment(None)
-        self.__setState(0)
+        new_state = self.training_ctrl.set_environment(None)
+        print(f"_reset - new_state", new_state)
+        self.__setState(new_state)
         self._episode_ended = False
         return ts.restart(self._state)
 
@@ -175,6 +174,9 @@ class GameEnvironment(PyEnvironment):
         # Make sure episodes don't go on forever.
         if evaluation["done"]:
             self._episode_ended = True
+
+        new_state = self.training_ctrl.get_state()
+        self.__setState(new_state)
 
         if self._episode_ended:
             return ts.termination(self._state, evaluation["reward"])
