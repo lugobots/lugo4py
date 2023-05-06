@@ -102,7 +102,7 @@ display = pyvirtualdisplay.Display(visible=0, size=(1400, 900)).start()
 
 """## Hyperparameters"""
 
-num_iterations = 1000  # @param {type:"integer"}
+num_iterations = 10000  # @param {type:"integer"}
 
 initial_collect_steps = 100  # @param {type:"integer"}
 collect_steps_per_iteration = 1  # @param {type:"integer"}
@@ -123,13 +123,13 @@ Load the CartPole environment from the OpenAI Gym suite.
 """
 
 env_name = 'CartPole-v0'
-env = suite_gym.load(env_name)
+# env = suite_gym.load(env_name)
 
 """You can render this environment to see how it looks. A free-swinging pole is attached to a cart.  The goal is to move the cart right or left in order to keep the pole pointing up."""
 
 # @test {"skip": true}
-env.reset()
-PIL.Image.fromarray(env.render())
+# env.reset()
+# PIL.Image.fromarray(env.render())
 
 """The `environment.step` method takes an `action` in the environment and returns a `TimeStep` tuple containing the next observation of the environment and the reward for the action.
 
@@ -137,16 +137,16 @@ The `time_step_spec()` method returns the specification for the `TimeStep` tuple
 
 """
 
-print('Observation Spec:')
-print(env.time_step_spec().observation)
-
-print('Reward Spec:')
-print(env.time_step_spec().reward)
+# print('Observation Spec:')
+# print(env.time_step_spec().observation)
+#
+# print('Reward Spec:')
+# print(env.time_step_spec().reward)
 
 """The `action_spec()` method returns the shape, data types, and allowed values of valid actions."""
 
-print('Action Spec:')
-print(env.action_spec())
+# print('Action Spec:')
+# print(env.action_spec())
 
 """In the Cartpole environment:
 
@@ -160,26 +160,25 @@ print(env.action_spec())
 
 """
 
-time_step = env.reset()
-print('Time step:')
-print(time_step)
+# time_step = env.reset()
+# print('Time step:')
+# print(time_step)
 
-action = np.array(1, dtype=np.int32)
-
-next_time_step = env.step(action)
-print('Next time step:')
-print(next_time_step)
+# action = np.array(1, dtype=np.int32)
+#
+# next_time_step = env.step(action)
+# print('Next time step:')
+# print(next_time_step)
 
 """Usually two environments are instantiated: one for training and one for evaluation. """
 
 train_py_env = suite_gym.load(env_name)
-eval_py_env = suite_gym.load(env_name)
 
 train_env = tf_py_environment.TFPyEnvironment(train_py_env)
-# eval_env = tf_py_environment.TFPyEnvironment(eval_py_env)
+
 
 fc_layer_params = (100, 50)
-action_tensor_spec = tensor_spec.from_spec(env.action_spec())
+action_tensor_spec = tensor_spec.from_spec(train_py_env.action_spec())
 num_actions = action_tensor_spec.maximum - action_tensor_spec.minimum + 1
 
 
@@ -245,26 +244,6 @@ collect_policy = agent.collect_policy
 random_policy = random_tf_policy.RandomTFPolicy(train_env.time_step_spec(),
                                                 train_env.action_spec())
 
-"""To get an action from a policy, call the `policy.action(time_step)` method. The `time_step` contains the observation from the environment. This method returns a `PolicyStep`, which is a named tuple with three components:
-
--   `action` — the action to be taken (in this case, `0` or `1`)
--   `state` — used for stateful (that is, RNN-based) policies
--   `info` — auxiliary data, such as log probabilities of actions
-"""
-
-example_environment = tf_py_environment.TFPyEnvironment(suite_gym.load('CartPole-v0'))
-
-time_step = example_environment.reset()
-
-random_policy.action(time_step)
-
-"""## Metrics and Evaluation
-
-The most common metric used to evaluate a policy is the average return. The return is the sum of rewards obtained while running a policy in an environment for an episode. Several episodes are run, creating an average return.
-
-The following function computes the average return of a policy, given the policy, environment, and a number of episodes.
-
-"""
 
 
 # @test {"skip": true}
@@ -342,7 +321,7 @@ Here we are using 'PyDriver' to run the experience collecting loop. You can lear
 
 # @test {"skip": true}
 py_driver.PyDriver(
-    env,
+    train_py_env,
     py_tf_eager_policy.PyTFEagerPolicy(
         random_policy, use_tf_function=True),
     [rb_observer],
@@ -413,7 +392,7 @@ time_step = train_py_env.reset()
 
 # Create a driver to collect experience.
 collect_driver = py_driver.PyDriver(
-    env,
+    train_py_env,
     py_tf_eager_policy.PyTFEagerPolicy(
         agent.collect_policy, use_tf_function=True),
     [rb_observer],
