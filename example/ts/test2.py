@@ -10,7 +10,7 @@ Original file is located at
 """
 from __future__ import absolute_import, division, print_function
 
-#@title Licensed under the Apache License, Version 2.0 (the "License");
+# @title Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
@@ -102,10 +102,10 @@ display = pyvirtualdisplay.Display(visible=0, size=(1400, 900)).start()
 
 """## Hyperparameters"""
 
-num_iterations = 20000 # @param {type:"integer"}
+num_iterations = 1000  # @param {type:"integer"}
 
 initial_collect_steps = 100  # @param {type:"integer"}
-collect_steps_per_iteration =   1# @param {type:"integer"}
+collect_steps_per_iteration = 1  # @param {type:"integer"}
 replay_buffer_max_length = 100000  # @param {type:"integer"}
 
 batch_size = 64  # @param {type:"integer"}
@@ -127,7 +127,7 @@ env = suite_gym.load(env_name)
 
 """You can render this environment to see how it looks. A free-swinging pole is attached to a cart.  The goal is to move the cart right or left in order to keep the pole pointing up."""
 
-#@test {"skip": true}
+# @test {"skip": true}
 env.reset()
 PIL.Image.fromarray(env.render())
 
@@ -175,36 +175,13 @@ print(next_time_step)
 train_py_env = suite_gym.load(env_name)
 eval_py_env = suite_gym.load(env_name)
 
-"""The Cartpole environment, like most environments, is written in pure Python. This is converted to TensorFlow using the `TFPyEnvironment` wrapper.
-
-The original environment's API uses Numpy arrays. The `TFPyEnvironment` converts these to `Tensors` to make it compatible with Tensorflow agents and policies.
-
-"""
-
 train_env = tf_py_environment.TFPyEnvironment(train_py_env)
-eval_env = tf_py_environment.TFPyEnvironment(eval_py_env)
-
-"""## Agent
-
-The algorithm used to solve an RL problem is represented by an `Agent`. TF-Agents provides standard implementations of a variety of `Agents`, including:
-
--   [DQN](https://storage.googleapis.com/deepmind-media/dqn/DQNNaturePaper.pdf) (used in this tutorial)
--   [REINFORCE](https://www-anw.cs.umass.edu/~barto/courses/cs687/williams92simple.pdf)
--   [DDPG](https://arxiv.org/pdf/1509.02971.pdf)
--   [TD3](https://arxiv.org/pdf/1802.09477.pdf)
--   [PPO](https://arxiv.org/abs/1707.06347)
--   [SAC](https://arxiv.org/abs/1801.01290)
-
-The DQN agent can be used in any environment which has a discrete action space.
-
-At the heart of a DQN Agent is a `QNetwork`, a neural network model that can learn to predict `QValues` (expected returns) for all actions, given an observation from the environment.
-
-We will use `tf_agents.networks.` to create a `QNetwork`. The network will consist of a sequence of `tf.keras.layers.Dense` layers, where the final layer will have 1 output for each possible action.
-"""
+# eval_env = tf_py_environment.TFPyEnvironment(eval_py_env)
 
 fc_layer_params = (100, 50)
 action_tensor_spec = tensor_spec.from_spec(env.action_spec())
 num_actions = action_tensor_spec.maximum - action_tensor_spec.minimum + 1
+
 
 # Define a helper function to create Dense layers configured with the right
 # activation and kernel initializer.
@@ -214,6 +191,7 @@ def dense_layer(num_units):
         activation=tf.keras.activations.relu,
         kernel_initializer=tf.keras.initializers.VarianceScaling(
             scale=2.0, mode='fan_in', distribution='truncated_normal'))
+
 
 # QNetwork consists of a sequence of Dense layers followed by a dense layer
 # with `num_actions` units to generate one q_value per available action as
@@ -274,8 +252,7 @@ random_policy = random_tf_policy.RandomTFPolicy(train_env.time_step_spec(),
 -   `info` — auxiliary data, such as log probabilities of actions
 """
 
-example_environment = tf_py_environment.TFPyEnvironment(
-    suite_gym.load('CartPole-v0'))
+example_environment = tf_py_environment.TFPyEnvironment(suite_gym.load('CartPole-v0'))
 
 time_step = example_environment.reset()
 
@@ -289,9 +266,9 @@ The following function computes the average return of a policy, given the policy
 
 """
 
-#@test {"skip": true}
-def compute_avg_return(environment, policy, num_episodes=10):
 
+# @test {"skip": true}
+def compute_avg_return(environment, policy, num_episodes=10):
     total_return = 0.0
     for _ in range(num_episodes):
 
@@ -313,7 +290,7 @@ def compute_avg_return(environment, policy, num_episodes=10):
 
 """Running this computation on the `random_policy` shows a baseline performance in the environment."""
 
-compute_avg_return(eval_env, random_policy, num_eval_episodes)
+compute_avg_return(train_env, random_policy, num_eval_episodes)
 
 """## Replay Buffer
 
@@ -363,7 +340,7 @@ Now execute the random policy in the environment for a few steps, recording the 
 Here we are using 'PyDriver' to run the experience collecting loop. You can learn more about TF Agents driver in our [drivers tutorial](https://www.tensorflow.org/agents/tutorials/4_drivers_tutorial).
 """
 
-#@test {"skip": true}
+# @test {"skip": true}
 py_driver.PyDriver(
     env,
     py_tf_eager_policy.PyTFEagerPolicy(
@@ -415,7 +392,7 @@ The following will take ~5 minutes to run.
 """
 
 # Commented out IPython magic to ensure Python compatibility.
-#@test {"skip": true}
+# @test {"skip": true}
 # try:
 #    %%time
 # except:
@@ -428,7 +405,7 @@ agent.train = common.function(agent.train)
 agent.train_step_counter.assign(0)
 
 # Evaluate the agent's policy once before training.
-avg_return = compute_avg_return(eval_env, agent.policy, num_eval_episodes)
+avg_return = compute_avg_return(train_env, agent.policy, num_eval_episodes)
 returns = [avg_return]
 
 # Reset the environment.
@@ -457,7 +434,7 @@ for _ in range(num_iterations):
         print('step = {0}: loss = {1}'.format(step, train_loss))
 
     if step % eval_interval == 0:
-        avg_return = compute_avg_return(eval_env, agent.policy, num_eval_episodes)
+        avg_return = compute_avg_return(train_env, agent.policy, num_eval_episodes)
         print('step = {0}: Average Return = {1}'.format(step, avg_return))
         returns.append(avg_return)
 
@@ -470,13 +447,13 @@ Use `matplotlib.pyplot` to chart how the policy improved during training.
 One iteration of `Cartpole-v0` consists of 200 time steps. The environment gives a reward of `+1` for each step the pole stays up, so the maximum return for one episode is 200. The charts shows the return increasing towards that maximum each time it is evaluated during training. (It may be a little unstable and not increase monotonically each time.)
 """
 
-#@test {"skip": true}
+# @test {"skip": true}
 
 iterations = range(0, num_iterations + 1, eval_interval)
-plt.plot(iterations, returns)
-plt.ylabel('Average Return')
-plt.xlabel('Iterations')
-plt.ylim(top=250)
+# plt.plot(iterations, returns)
+# plt.ylabel('Average Return')
+# plt.xlabel('Iterations')
+# plt.ylim(top=250)
 
 """### Videos
 
@@ -485,34 +462,4 @@ Charts are nice. But more exciting is seeing an agent actually performing a task
 First, create a function to embed videos in the notebook.
 """
 
-def embed_mp4(filename):
-    """Embeds an mp4 file in the notebook."""
-    video = open(filename,'rb').read()
-    b64 = base64.b64encode(video)
-    tag = '''
-  <video width="640" height="480" controls>
-    <source src="data:video/mp4;base64,{0}" type="video/mp4">
-  Your browser does not support the video tag.
-  </video>'''.format(b64.decode())
 
-    return IPython.display.HTML(tag)
-
-"""Now iterate through a few episodes of the Cartpole game with the agent. The underlying Python environment (the one "inside" the TensorFlow environment wrapper) provides a `render()` method, which outputs an image of the environment state. These can be collected into a video."""
-
-def create_policy_eval_video(policy, filename, num_episodes=5, fps=30):
-    filename = filename + ".mp4"
-    with imageio.get_writer(filename, fps=fps) as video:
-        for _ in range(num_episodes):
-            time_step = eval_env.reset()
-            video.append_data(eval_py_env.render())
-            while not time_step.is_last():
-                action_step = policy.action(time_step)
-                time_step = eval_env.step(action_step.action)
-                video.append_data(eval_py_env.render())
-    return embed_mp4(filename)
-
-create_policy_eval_video(agent.policy, "trained-agent")
-
-"""For fun, compare the trained agent (above) to an agent moving randomly. (It does not do as well.)"""
-
-create_policy_eval_video(random_policy, "random-agent")
