@@ -17,6 +17,7 @@ from tf_agents.trajectories import time_step as ts
 from tf_agents.utils import common
 from tf_agents.networks import q_network
 
+from example.ts import test1
 from example.ts.my_bot import MyBotTrainer, TRAINING_PLAYER_NUMBER
 from src.lugo4py import lugo
 from src.lugo4py.client import LugoClient
@@ -24,8 +25,12 @@ from src.lugo4py.mapper import Mapper
 from src.lugo4py.rl.gym import Gym
 from src.lugo4py.rl.remote_control import RemoteControl
 from src.lugo4py.rl.training_controller import TrainingController
+import numpy as np
+import tensorflow as tf
+from tf_agents.environments.py_environment import PyEnvironment
 
-# import tensorflow as tf
+
+# region settings
 
 num_iterations = 20000  # @param {type:"integer"}
 
@@ -37,61 +42,12 @@ batch_size = 64  # @param {type:"integer"}
 learning_rate = 1e-3  # @param {type:"number"}
 log_interval = 200  # @param {type:"integer"}
 
-num_eval_episodes = 10  # @param {type:"integer"}
+num_eval_episodes = 1  # @param {type:"integer"}
 eval_interval = 1000  # @param {type:"integer"}
 
-import numpy as np
-import tensorflow as tf
-from tf_agents.environments.py_environment import PyEnvironment
+# endregion
 
 
-# class GameEnvironment(PyEnvironment):
-#     def __init__(self):
-#         # Initialize game parameters
-#         self.num_actions = 2
-#         self.num_sensors = 1
-#         # self.game_state = []
-#
-#         # Define the action space
-#         self._action_spec = BoundedArraySpec((), np.int32, minimum=0, maximum=self.num_actions - 1)
-#         # Define the observation space
-#         self._observation_spec = BoundedArraySpec((self.num_sensors,), np.int32, minimum=0, maximum=1)
-#         self._state = 0
-#         self._episode_ended = False
-#
-#     def observation_spec(self):
-#         return self._observation_spec
-#
-#     def action_spec(self):
-#         return self._action_spec
-#
-#     def _reset(self):
-#         self._state = 0
-#         self._episode_ended = False
-#         return ts.restart(np.array([self._state], dtype=np.int32))
-#
-#     def _step(self, action):
-#
-#         if self._episode_ended:
-#             # The last action ended the episode. Ignore the current action and start
-#             # a new episode.
-#             return self.reset()
-#
-#         # Make sure episodes don't go on forever.
-#         if action == 1:
-#             self._episode_ended = True
-#         elif action == 0:
-#             new_card = np.random.randint(1, 11)
-#             self._state += new_card
-#         else:
-#             raise ValueError('`action` should be 0 or 1.')
-#
-#         if self._episode_ended or self._state >= 21:
-#             reward = self._state - 21 if self._state <= 21 else -21
-#             return ts.termination(np.array([self._state], dtype=np.int32), reward)
-#         else:
-#             return ts.transition(
-#                 np.array([self._state], dtype=np.int32), reward=0.0, discount=1.0)
 
 class GameEnvironment(PyEnvironment):
 
@@ -100,62 +56,52 @@ class GameEnvironment(PyEnvironment):
         self.num_sensors = 6
 
         self._action_spec = array_spec.BoundedArraySpec(
-            shape=(), dtype=np.int32, minimum=0, maximum=self.num_actions, name='action')
+            shape=(), dtype=np.int32, minimum=0, maximum=self.num_actions - 1, name='action')
         self._observation_spec = array_spec.BoundedArraySpec(
-            shape=(self.num_sensors,), dtype=np.float32, minimum=0, name='observation')
+            shape=(self.num_sensors,), dtype=np.float32, minimum=0, maximum=1, name='observation')
         self.training_ctrl = training_ctrl
 
-        self.__setState(0)
-        self._episode_ended = False
+        self._reset()
+
 
 
     def action_spec(self):
-        #print(f"action spec - called")
+        print(f"action spec - called")
         return self._action_spec
 
     def __setState(self, value):
-        #print(f"__setState - calledssssss")
+        print(f"__setState - calledssssss")
         st = self.training_ctrl.get_state()
         self._state = np.array([value, 0.029, 0.9287, 0.029, 0.9287, 0.029], dtype=np.float32)
 
     def observation_spec(self):
-        #print(f"observation_spec - called")
+        print(f"observation_spec - called")
         return self._observation_spec
 
     def _reset(self):
-        #print(f"_reset - called")
+        print(f"_reset - WAS called")
         st = self.training_ctrl.set_environment(None)
         self.__setState(0)
         self._episode_ended = False
         return ts.restart(self._state)
 
     def _step(self, action):
-        #print(f"_step - called")
-        st = self.training_ctrl.update(action)
+        print(f"_step - called ")
+        evaluation = self.training_ctrl.update(action)
+       # print(f"_step - called {evaluation}")
         if self._episode_ended:
             # The last action ended the episode. Ignore the current action and start
             # a new episode.
             return self.reset()
         #print(f"Got an action {action}")
         # Make sure episodes don't go on forever.
-        if action == 1:
+        if evaluation["done"]:
             self._episode_ended = True
-        elif action == 0 or action > 1:
-            new_card = np.random.randint(1, 11)
-            self.__setState(0.25631)
-            # self._state += new_card
+
+        if self._episode_ended:
+            return ts.termination(self._state, evaluation["reward"])
         else:
-            raise ValueError(f'`action` should be 0 or 1. Got {action}')
-
-        if self._episode_ended or self._state[0] >= 21:
-            reward = self._state[0] - 21 if self._state[0] <= 21 else -21
-            return ts.termination(self._state, reward)
-        else:
-            return ts.transition(self._state, reward=0.0, discount=1.0)
-
-
-
-
+            return ts.transition(self._state, reward=evaluation["reward"], discount=1.0)
 
 grpc_address = "localhost:5000"
 grpc_insecure = True
@@ -167,12 +113,15 @@ def my_training_function(training_ctrl: TrainingController, stop_event: threadin
 
     print("Let's train")
 
+    # region Setup
     lugoEnv = GameEnvironment(training_ctrl)
     # print("Let's train1")
     # validate_py_environment(lugoEnv, episodes=2)
     # print("Let's train2")
 
     train_env = tf_py_environment.TFPyEnvironment(lugoEnv)
+
+    # test1.train_rl_model(lugoEnv)
 
     fc_layer_params = (100, 50)
     # action_tensor_spec = tensor_spec.from_spec(env.action_spec())
@@ -210,7 +159,7 @@ def my_training_function(training_ctrl: TrainingController, stop_event: threadin
 
     agent = dqn_agent.DqnAgent(
         train_env.time_step_spec(),
-        train_env.action_spec()
+        train_env.action_spec(),
         q_network=q_net,
         optimizer=optimizer,
         td_errors_loss_fn=common.element_wise_squared_loss,
@@ -278,19 +227,25 @@ def my_training_function(training_ctrl: TrainingController, stop_event: threadin
             agent.collect_policy, use_tf_function=True),
         [rb_observer],
         max_steps=collect_steps_per_iteration)
+
+    # endregion
     print(f"START THE FUN")
     for _ in range(num_iterations):
 
-        print(f"num_iterations #{num_iterations}")
+        print(f"num_iterations #{num_iterations}", time_step)
 
         # Collect a few steps and save to the replay buffer.
         time_step, _ = collect_driver.run(time_step)
 
+        print(f"RODA MERDA")
         # Sample a batch of data from the buffer and update the agent's network.
         experience, unused_info = next(iterator)
+
+        print(f"olha o train", experience)
         train_loss = agent.train(experience).loss
 
         step = agent.train_step_counter.numpy()
+        print(f"stepstepstepstepstep", step)
 
         if step % log_interval == 0:
             print('step = {0}: loss = {1}'.format(step, train_loss))
@@ -342,7 +297,7 @@ def my_training_function(training_ctrl: TrainingController, stop_event: threadin
     #         print("error during trainning session:", e)
 
     training_ctrl.stop()
-    print("Training is over, scores:", scores)
+    # print("Training is over, scores:", scores)
     stop.set()
 
 def compute_avg_return(environment, policy, num_episodes=10):
@@ -360,6 +315,7 @@ def compute_avg_return(environment, policy, num_episodes=10):
         total_return += episode_return
 
     avg_return = total_return / num_episodes
+    print("zzzzzzzz zzzzz zzzz ", avg_return)
     return avg_return.numpy()[0]
 
 if __name__ == "__main__":
