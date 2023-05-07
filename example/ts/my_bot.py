@@ -1,6 +1,7 @@
 import random
 import time
 from enum import Enum
+from math import hypot
 from typing import Any, List, Optional
 
 from src.lugo4py import orientation, lugo, specs, geo
@@ -48,16 +49,11 @@ class MyBotTrainer(BotTrainer):
         reader = GameSnapshotReader(snapshot, lugo.TeamSide.HOME)
         me = self.get_me(reader)
 
-        grid_cols = 10
-        grid_rows = 5
-        # using a more wide grid for performance reasons
-        sensorMapper = Mapper(grid_cols, grid_rows, lugo.TeamSide.HOME)
-        myGridPos = sensorMapper.get_region_from_point(me.position)
-        opponentGoalGridPos = sensorMapper.get_region_from_point(reader.get_opponent_goal().get_center())
+        goal_position = reader.get_opponent_goal().get_center()
 
         return [
-            (opponentGoalGridPos.get_col() - myGridPos.get_col()) / grid_cols,
-            (opponentGoalGridPos.get_row() - myGridPos.get_row()) / grid_rows,
+            (goal_position.x - me.position.x) / specs.FIELD_WIDTH,
+            (goal_position.y - me.position.y) / specs.FIELD_HEIGHT,
             self.steps_to_obstacle_within_area(reader, SensorArea.FRONT),
             self.steps_to_obstacle_within_area(reader, SensorArea.FRONT_LEFT),
             self.steps_to_obstacle_within_area(reader, SensorArea.FRONT_RIGHT),
@@ -68,7 +64,7 @@ class MyBotTrainer(BotTrainer):
 
     def steps_to_obstacle_within_area(self, reader: GameSnapshotReader, sensor_area):
         # specs.PLAYER_MAX_SPEED is a step
-        sensor_range = specs.PLAYER_MAX_SPEED * 15
+        sensor_range = specs.PLAYER_MAX_SPEED * 18
         frontward_view = sensor_range
         sides_view = sensor_range
         backward_view = sensor_range
@@ -120,17 +116,52 @@ class MyBotTrainer(BotTrainer):
         return me
 
     def play(self, order_set: lugo.OrderSet, snapshot: lugo.GameSnapshot, action: Any) -> lugo.OrderSet:
-       # print(f"GOT ACTION -> {action}")
+        # print(f"GOT ACTION -> {action}")
         reader = GameSnapshotReader(snapshot, lugo.TeamSide.HOME)
         direction = reader.make_order_move_by_direction(action)
         order_set.orders.extend([direction])
         return order_set
 
     def evaluate(self, previous_snapshot: lugo.GameSnapshot, new_snapshot: lugo.GameSnapshot) -> Any:
-        return {"done": new_snapshot.turn >= 80, "reward": random.random()}
+        reader_previous = GameSnapshotReader(previous_snapshot, lugo.TeamSide.HOME)
+        reader = GameSnapshotReader(new_snapshot, lugo.TeamSide.HOME)
+        me = self.get_me(reader)
+        me_previously = self.get_me(reader_previous)
+
+        opponent_goal = reader.get_opponent_goal().get_center()
+
+        previous_dist = hypot(opponent_goal.x - me_previously.position.x,
+                              opponent_goal.y - me_previously.position.y)
+        actual_dist = hypot(opponent_goal.x - me.position.x,
+                            opponent_goal.y - me.position.y)
+
+        reward = (previous_dist - actual_dist)/specs.PLAYER_MAX_SPEED
+        done = False
+
+        if me.position.x > (specs.FIELD_WIDTH - specs.GOAL_ZONE_RANGE) * 0.90:  # positive end
+            done = True
+            reward = 10000
+        elif new_snapshot.turn > 200 or me.position.x < specs.FIELD_WIDTH/3 or me.position.y == specs.MAX_Y_COORDINATE or me.position.y == 0:
+            done = True
+            reward = 0
+        else:  # negative end
+            steps_to_closest_obstacle = min(
+                self.steps_to_obstacle_within_area(reader, SensorArea.FRONT),
+                self.steps_to_obstacle_within_area(reader, SensorArea.FRONT_LEFT),
+                self.steps_to_obstacle_within_area(reader, SensorArea.FRONT_RIGHT),
+                self.steps_to_obstacle_within_area(reader, SensorArea.BACK),
+                self.steps_to_obstacle_within_area(reader, SensorArea.BACK_LEFT),
+                self.steps_to_obstacle_within_area(reader, SensorArea.BACK_RIGHT)
+            )
+
+            if steps_to_closest_obstacle < 0.5:
+                done = True
+                reward = -10000
+
+        return {'done': done, 'reward': reward}
 
     def _random_player_pos(self, mapper: Mapper, side: lugo.TeamSide, number: int) -> None:
-        min_col = 10
+        min_col = 7
         max_col = 17
         min_row = 1
         max_row = 8

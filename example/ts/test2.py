@@ -108,17 +108,17 @@ from example.ts.my_bot import MyBotTrainer, TRAINING_PLAYER_NUMBER
 
 """## Hyperparameters"""
 
-num_iterations = 10000  # @param {type:"integer"}
+num_iterations = 100000  # @param {type:"integer"}
 
 initial_collect_steps = 100  # @param {type:"integer"}
 collect_steps_per_iteration = 1  # @param {type:"integer"}
 replay_buffer_max_length = 100000  # @param {type:"integer"}
 
 batch_size = 64  # @param {type:"integer"}
-learning_rate = 1e-3  # @param {type:"number"}
+learning_rate = 1e-2  # @param {type:"number"}
 log_interval = 200  # @param {type:"integer"}
 
-num_eval_episodes = 10  # @param {type:"integer"}
+num_eval_episodes = 15  # @param {type:"integer"}
 eval_interval = 1000  # @param {type:"integer"}
 
 """## Environment
@@ -140,7 +140,7 @@ class GameEnvironment(PyEnvironment):
         self._observation_spec = array_spec.BoundedArraySpec(
             shape=(self.num_sensors,), dtype=np.float32, minimum=np.zeros(self.num_sensors), maximum=np.ones(self.num_sensors), name='observation')
         self.training_ctrl = training_ctrl
-
+        self.total_reward = 0
         self._reset()
 
     def action_spec(self):
@@ -148,7 +148,7 @@ class GameEnvironment(PyEnvironment):
         return self._action_spec
 
     def __setState(self, new_state):
-        print(f"__setState - calledssssss", new_state)
+        # print(f"__setState - calledssssss", new_state)
         self._state = np.array(new_state, dtype=np.float32)
 
     def observation_spec(self):
@@ -156,8 +156,10 @@ class GameEnvironment(PyEnvironment):
         return self._observation_spec
 
     def _reset(self):
+        self.total_reward = 0
         new_state = self.training_ctrl.set_environment(None)
-        print(f"_reset - new_state", new_state)
+        # print(f"_reset - new_state", new_state)
+        print(f"==============\n\n")
         self.__setState(new_state)
         self._episode_ended = False
         return ts.restart(self._state)
@@ -165,7 +167,7 @@ class GameEnvironment(PyEnvironment):
     def _step(self, action):
         # print(f"_step - called ")
         evaluation = self.training_ctrl.update(action)
-        print(f"_step - {action} -> {evaluation}")
+        # print(f"_step - {action} -> {evaluation}")
         if self._episode_ended:
             # The last action ended the episode. Ignore the current action and start
             # a new episode.
@@ -177,8 +179,9 @@ class GameEnvironment(PyEnvironment):
 
         new_state = self.training_ctrl.get_state()
         self.__setState(new_state)
-
+        self.total_reward += evaluation["reward"]
         if self._episode_ended:
+            print(f'final reward: {self.total_reward}')
             return ts.termination(self._state, evaluation["reward"])
         else:
             return ts.transition(self._state, reward=evaluation["reward"], discount=1.0)
