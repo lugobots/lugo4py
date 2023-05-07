@@ -10,23 +10,24 @@ import signal
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
-import numpy as np
+
 import reverb
 import tensorflow as tf
 from tf_agents.agents.dqn import dqn_agent
 from tf_agents.drivers import py_driver
 from tf_agents.environments import tf_py_environment
-from tf_agents.environments.py_environment import PyEnvironment
+
 from tf_agents.networks import sequential
 from tf_agents.policies import py_tf_eager_policy
 from tf_agents.policies import random_tf_policy
 from tf_agents.replay_buffers import reverb_replay_buffer
 from tf_agents.replay_buffers import reverb_utils
-from tf_agents.specs import array_spec
+
 from tf_agents.specs import tensor_spec
-from tf_agents.trajectories import time_step as ts
+
 from tf_agents.utils import common
 
+from example.ts.bot_environment import GameEnvironment
 from example.ts.my_bot import MyBotTrainer, TRAINING_PLAYER_NUMBER
 from src.lugo4py import lugo
 from src.lugo4py.client import LugoClient
@@ -55,62 +56,6 @@ grpc_insecure = True
 stop = threading.Event()
 
 
-class GameEnvironment(PyEnvironment):
-
-    def __init__(self, training_ctrl: TrainingController):
-        self.num_actions = 8
-        self.num_sensors = 8
-
-        self._action_spec = array_spec.BoundedArraySpec(
-            shape=(), dtype=np.int32, minimum=0, maximum=self.num_actions - 1, name='action')
-        self._observation_spec = array_spec.BoundedArraySpec(
-            shape=(self.num_sensors,), dtype=np.float32, minimum=np.zeros(self.num_sensors), maximum=np.ones(self.num_sensors), name='observation')
-        self.training_ctrl = training_ctrl
-        self.total_reward = 0
-        self._reset()
-
-    def action_spec(self):
-        print(f"action spec - called")
-        return self._action_spec
-
-    def __setState(self, new_state):
-        # print(f"__setState - calledssssss", new_state)
-        self._state = np.array(new_state, dtype=np.float32)
-
-    def observation_spec(self):
-        print(f"observation_spec - called")
-        return self._observation_spec
-
-    def _reset(self):
-        self.total_reward = 0
-        new_state = self.training_ctrl.set_environment(None)
-        # print(f"_reset - new_state", new_state)
-        print(f"==============\n\n")
-        self.__setState(new_state)
-        self._episode_ended = False
-        return ts.restart(self._state)
-
-    def _step(self, action):
-        # print(f"_step - called ")
-        evaluation = self.training_ctrl.update(action)
-        # print(f"_step - {action} -> {evaluation}")
-        if self._episode_ended:
-            # The last action ended the episode. Ignore the current action and start
-            # a new episode.
-            return self.reset()
-        # print(f"Got an action {action}")
-        # Make sure episodes don't go on forever.
-        if evaluation["done"]:
-            self._episode_ended = True
-
-        new_state = self.training_ctrl.get_state()
-        self.__setState(new_state)
-        self.total_reward += evaluation["reward"]
-        if self._episode_ended:
-            print(f'final reward: {self.total_reward}')
-            return ts.termination(self._state, evaluation["reward"])
-        else:
-            return ts.transition(self._state, reward=evaluation["reward"], discount=1.0)
 
 
 def training(training_ctrl: TrainingController, stop_event: threading.Event):
