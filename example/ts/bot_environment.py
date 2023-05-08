@@ -1,3 +1,6 @@
+import sys
+import time
+
 import numpy as np
 from tf_agents.environments.py_environment import PyEnvironment
 from tf_agents.specs import array_spec
@@ -19,7 +22,6 @@ class GameEnvironment(PyEnvironment):
         self.training_ctrl = training_ctrl
         self._reset()
 
-
     def action_spec(self):
         print(f"action spec - called")
         return self._action_spec
@@ -36,7 +38,7 @@ class GameEnvironment(PyEnvironment):
         self.total_reward = 0
         new_state = self.training_ctrl.set_environment(None)
         # print(f"_reset - new_state", new_state)
-        print(f"==============\n\n")
+        # print(f"==============\n\n")
         self.__set_state(new_state)
         self._episode_ended = False
         return ts.restart(self._state)
@@ -45,6 +47,7 @@ class GameEnvironment(PyEnvironment):
         # print(f"_step - called ")
         evaluation = self.training_ctrl.update(action)
         # print(f"_step - {action} -> {evaluation}")
+        # time.sleep(1)
         if self._episode_ended:
             # The last action ended the episode. Ignore the current action and start
             # a new episode.
@@ -58,7 +61,7 @@ class GameEnvironment(PyEnvironment):
         self.__set_state(new_state)
         self.total_reward += evaluation["reward"]
         if self._episode_ended:
-            print(f'final reward: {self.total_reward}')
+            # print(f'final reward: {self.total_reward}')
             return ts.termination(self._state, evaluation["reward"])
         else:
             return ts.transition(self._state, reward=evaluation["reward"], discount=1.0)

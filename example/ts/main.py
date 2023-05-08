@@ -6,10 +6,10 @@ Code copied from the TensorFlow DQN Tutorial
 """
 from __future__ import absolute_import, division, print_function
 
+import os
 import signal
 import threading
 from concurrent.futures import ThreadPoolExecutor
-
 
 import reverb
 import tensorflow as tf
@@ -18,7 +18,7 @@ from tf_agents.drivers import py_driver
 from tf_agents.environments import tf_py_environment
 
 from tf_agents.networks import sequential
-from tf_agents.policies import py_tf_eager_policy
+from tf_agents.policies import py_tf_eager_policy, policy_saver
 from tf_agents.policies import random_tf_policy
 from tf_agents.replay_buffers import reverb_replay_buffer
 from tf_agents.replay_buffers import reverb_utils
@@ -27,8 +27,8 @@ from tf_agents.specs import tensor_spec
 
 from tf_agents.utils import common
 
-from example.ts.bot_environment import GameEnvironment
-from example.ts.my_bot import MyBotTrainer, TRAINING_PLAYER_NUMBER
+from bot_environment import GameEnvironment
+from my_bot import MyBotTrainer, TRAINING_PLAYER_NUMBER
 from src.lugo4py import lugo
 from src.lugo4py.client import LugoClient
 from src.lugo4py.mapper import Mapper
@@ -36,19 +36,21 @@ from src.lugo4py.rl.gym import Gym
 from src.lugo4py.rl.remote_control import RemoteControl
 from src.lugo4py.rl.training_controller import TrainingController
 
-
-num_iterations = 100000  # @param {type:"integer"}
+num_iterations = 600000  # @param {type:"integer"}
 
 initial_collect_steps = 100  # @param {type:"integer"}
 collect_steps_per_iteration = 1  # @param {type:"integer"}
 replay_buffer_max_length = 100000  # @param {type:"integer"}
 
 batch_size = 64  # @param {type:"integer"}
-learning_rate = 1e-2  # @param {type:"number"}
+learning_rate = 2e-2  # @param {type:"number"}
 log_interval = 200  # @param {type:"integer"}
 
-num_eval_episodes = 15  # @param {type:"integer"}
-eval_interval = 1000  # @param {type:"integer"}
+num_eval_episodes = 30  # @param {type:"integer"}
+eval_interval = 10000  # @param {type:"integer"}
+
+checkpoint_interval = 200
+saving_interval = 2000
 
 grpc_address = "localhost:5000"
 grpc_insecure = True
@@ -56,11 +58,9 @@ grpc_insecure = True
 stop = threading.Event()
 
 
-
-
 def training(training_ctrl: TrainingController, stop_event: threading.Event):
     print("Starting what actually amtters")
-    train_py_env = GameEnvironment(training_ctrl) # suite_gym.load(env_name)
+    train_py_env = GameEnvironment(training_ctrl)  # suite_gym.load(env_name)
 
     train_env = tf_py_environment.TFPyEnvironment(train_py_env)
 
@@ -89,7 +89,6 @@ def training(training_ctrl: TrainingController, stop_event: threading.Event):
         bias_initializer=tf.keras.initializers.Constant(-0.2))
     q_net = sequential.Sequential(dense_layers + [q_values_layer])
 
-
     optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
     train_step_counter = tf.Variable(0)
@@ -103,7 +102,6 @@ def training(training_ctrl: TrainingController, stop_event: threading.Event):
         train_step_counter=train_step_counter)
 
     agent.initialize()
-
 
     # eval_policy = agent.policy
     # collect_policy = agent.collect_policy
@@ -122,12 +120,13 @@ def training(training_ctrl: TrainingController, stop_event: threading.Event):
                 action_step = policy.action(time_step)
                 time_step = environment.step(action_step.action)
                 episode_return += time_step.reward
+            print(f"episode_return: {episode_return}")
             total_return += episode_return
 
         avg_return = total_return / num_episodes
         return avg_return.numpy()[0]
 
-    compute_avg_return(train_env, random_policy, num_eval_episodes)
+    # compute_avg_return(train_env, random_policy, num_eval_episodes)
 
     table_name = 'uniform_table'
     replay_buffer_signature = tensor_spec.from_spec(
@@ -148,7 +147,7 @@ def training(training_ctrl: TrainingController, stop_event: threading.Event):
     replay_buffer = reverb_replay_buffer.ReverbReplayBuffer(
         agent.collect_data_spec,
         table_name=table_name,
-        sequence_length=2,
+        sequence_length=None,
         local_server=reverb_server)
 
     rb_observer = reverb_utils.ReverbAddTrajectoryObserver(
@@ -156,9 +155,27 @@ def training(training_ctrl: TrainingController, stop_event: threading.Event):
         table_name,
         sequence_length=2)
 
-#    agent.collect_data_spec
+    policy_dir = os.path.join(".", 'policy')
+    checkpoint_dir = os.path.join("", 'checkpoint')
 
-#    agent.collect_data_spec._fields
+    global_step = tf.compat.v1.train.get_or_create_global_step()
+
+    train_checkpointer = common.Checkpointer(
+        ckpt_dir=checkpoint_dir,
+        max_to_keep=1,
+        agent=agent,
+        policy=agent.policy,
+        replay_buffer=replay_buffer,
+        global_step=global_step
+    )
+    tf_policy_saver = policy_saver.PolicySaver(agent.policy)
+
+    train_checkpointer.initialize_or_restore()
+    global_step = tf.compat.v1.train.get_global_step()
+
+    #    agent.collect_data_spec
+
+    #    agent.collect_data_spec._fields
 
     py_driver.PyDriver(
         train_py_env,
@@ -171,13 +188,12 @@ def training(training_ctrl: TrainingController, stop_event: threading.Event):
     dataset = replay_buffer.as_dataset(
         num_parallel_calls=3,
         sample_batch_size=batch_size,
-        num_steps=2).prefetch(3)
+        num_steps=None).prefetch(3)
 
-#    dataset
+    #    dataset
 
     iterator = iter(dataset)
- #   print(iterator)
-
+    #   print(iterator)
 
     # (Optional) Optimize by wrapping some of the code in a graph using TF function.
     agent.train = common.function(agent.train)
@@ -200,7 +216,7 @@ def training(training_ctrl: TrainingController, stop_event: threading.Event):
         [rb_observer],
         max_steps=collect_steps_per_iteration)
 
-    for _ in range(num_iterations):
+    for i in range(num_iterations):
 
         # Collect a few steps and save to the replay buffer.
         time_step, _ = collect_driver.run(time_step)
@@ -211,16 +227,27 @@ def training(training_ctrl: TrainingController, stop_event: threading.Event):
 
         step = agent.train_step_counter.numpy()
 
+        if i % checkpoint_interval == 0:
+            train_checkpointer.save(global_step)
+            print(f'[iteration {i}] checkpoint saved! {i / num_iterations}')
+
         if step % log_interval == 0:
-            print('step = {0}: loss = {1}'.format(step, train_loss))
+            print('[iteration {0}] step = {1}: loss = {2}'.format(i, step, train_loss))
+
+        if step % saving_interval == 0:
+            print(f'[iteration {i}] policy saved! {i / num_iterations}')
+            tf_policy_saver.save(policy_dir)
 
         if step % eval_interval == 0:
+            print('[iteration {0}] ===============TESTING======\n\n'.format(i))
             avg_return = compute_avg_return(train_env, agent.policy, num_eval_episodes)
-            print('step = {0}: Average Return = {1}'.format(step, avg_return))
+            print('[iteration {0}] step = {1}: Average Return = {2}'.format(i, step, avg_return))
+            print('[iteration {0}] ============================\n\n'.format(i))
             returns.append(avg_return)
 
+    tf_policy_saver.save(policy_dir)
 
-    iterations = range(0, num_iterations + 1, eval_interval)
+    # iterations = range(0, num_iterations + 1, eval_interval)
     # plt.plot(iterations, returns)
     # plt.ylabel('Average Return')
     # plt.xlabel('Iterations')
@@ -272,4 +299,3 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, signal_handler)
 
     stop.wait()
-

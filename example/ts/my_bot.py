@@ -52,8 +52,8 @@ class MyBotTrainer(BotTrainer):
         goal_position = reader.get_opponent_goal().get_center()
 
         return [
-            (goal_position.x - me.position.x) / specs.FIELD_WIDTH,
-            (goal_position.y - me.position.y) / specs.FIELD_HEIGHT,
+            abs(goal_position.x - me.position.x) / specs.FIELD_WIDTH,
+            abs(goal_position.y - me.position.y) / specs.FIELD_HEIGHT,
             self.steps_to_obstacle_within_area(reader, SensorArea.FRONT),
             self.steps_to_obstacle_within_area(reader, SensorArea.FRONT_LEFT),
             self.steps_to_obstacle_within_area(reader, SensorArea.FRONT_RIGHT),
@@ -141,9 +141,9 @@ class MyBotTrainer(BotTrainer):
         if me.position.x > (specs.FIELD_WIDTH - specs.GOAL_ZONE_RANGE) * 0.90:  # positive end
             done = True
             reward = 10000
-        elif new_snapshot.turn > 200 or me.position.x < specs.FIELD_WIDTH/3 or me.position.y == specs.MAX_Y_COORDINATE or me.position.y == 0:
+        elif new_snapshot.turn > 800 or me.position.x < specs.FIELD_WIDTH/3 or me.position.y == specs.MAX_Y_COORDINATE or me.position.y == 0:
             done = True
-            reward = 0
+            reward = -5000
         else:  # negative end
             steps_to_closest_obstacle = min(
                 self.steps_to_obstacle_within_area(reader, SensorArea.FRONT),
@@ -156,7 +156,7 @@ class MyBotTrainer(BotTrainer):
 
             if steps_to_closest_obstacle < 0.5:
                 done = True
-                reward = -10000
+                reward = -30000
 
         return {'done': done, 'reward': reward}
 
