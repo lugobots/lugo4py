@@ -1,6 +1,23 @@
-from enum import Enum, IntEnum
+"""
+File: lugo.py
+Author: Angelo Katipunan
+Date: May 20, 2023
+Description: This file mocks the gRPC methods to help IDEs intellisense.
+
+Python gRPC files are not friendly to IDEs, what makes the intellisense experience very poor or, sometimes, impossible.
+
+In order to help the programmer experience while developing bots, this file mocks the gRPC methods in a more friendly way.
+
+In short, this file content is not used at all by the package, but will guide the IDE to help the devs.
+If you are looking for the real implementation of these methods, please look at the `protos` directory (good luck on that)
+
+"""
+
+from enum import IntEnum
 from typing import List
+
 from .protos import physics_pb2
+
 
 class Vector:
     def __init__(self, x=0.0, y=0.0):
@@ -8,7 +25,7 @@ class Vector:
         self.y = y
 
 
-def NewVector() -> Vector:
+def new_vector() -> Vector:
     return physics_pb2.Vector()
 
 

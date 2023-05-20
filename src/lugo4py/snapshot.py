@@ -65,7 +65,7 @@ class GameSnapshotReader:
     def is_ball_holder(self, player: lugo.Player) -> bool:
         ball = self.snapshot.ball
 
-        return ball.holder != None and ball.holder.team_side == player.team_side and ball.holder.number == player.number
+        return ball.holder is not None and ball.holder.team_side == player.team_side and ball.holder.number == player.number
 
     def get_opponent_side(self) -> lugo.TeamSide:
         if self.my_side == server_pb2.Team.Side.HOME:
