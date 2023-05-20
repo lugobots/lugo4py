@@ -118,3 +118,15 @@ regionInFrontOfMe = targetRegion.front()
 moveOrder, err_ := reader.makeOrderMoveMaxSpeed(position, regionInFrontOfMe.center)
 
 ```
+
+
+## The trainable bot
+
+The trainable bot is an interface defined [here](../../src/lugo4py/rl/interfaces.py)
+
+
+```
+docker run -p 8080:8080 -p 5000:5000 lugobots/server:latest play --dev-mode --timer-mode=remote
+
+python3 -m example.rl.main
+```
