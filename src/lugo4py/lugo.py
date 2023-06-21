@@ -178,6 +178,12 @@ class StatusCode(IntEnum):
 class Player:
     def __init__(self, number: int, position: Point, velocity: Velocity, team_side: TeamSide, init_position: Point):
         self.number = number
+
+        if position.x is None:
+            position.x = 0
+        if position.y is None:
+            position.y = 0
+
         self.position = position
         self.velocity = velocity
         self.team_side = team_side
