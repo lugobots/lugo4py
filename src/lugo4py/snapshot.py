@@ -113,8 +113,7 @@ class GameSnapshotReader:
     def make_order_move_from_vector(self, direction: lugo.Vector, speed: int) -> lugo.Order:
         order = server_pb2.Order()
 
-        order.move.velocity.direction.x = direction.x
-        order.move.velocity.direction.y = direction.y
+        order.move.velocity.direction.CopyFrom(direction)
         order.move.velocity.speed = speed
         return order
 
