@@ -171,22 +171,21 @@ class GameSnapshotReader:
             direction = geo.new_vector(origin, target)
             direction = geo.normalize(direction)
 
-        velocity = lugo.new_velocity()
-        velocity.direction = direction
-        velocity.speed = speed
-
-        jump = server_pb2.Order.Jump()
-        jump.velocity = velocity
+        new_velocity = lugo.new_velocity(direction)
+        new_velocity.speed = speed
 
         order = server_pb2.Order()
-        order.Jump = jump
+        jump = order.jump
+        jump.velocity.CopyFrom(new_velocity)
+
         return order
 
     def make_order_kick(self, ball: lugo.Ball, target: Point, speed: int) -> lugo.Order:
         ball_expected_direction = geo.new_vector(ball.position, target)
 
         # the ball velocity is summed to the kick velocity, so we have to consider the current ball direction
-        diff_vector = geo.sub_vector(ball_expected_direction, ball.velocity.direction)
+        diff_vector = geo.sub_vector(
+            ball_expected_direction, ball.velocity.direction)
 
         new_velocity = lugo.new_velocity(geo.normalize(diff_vector))
         new_velocity.speed = speed
@@ -221,12 +220,14 @@ homeGoal = Goal(
 
 def define_state(snapshot: lugo.GameSnapshot, player_number: int, side: lugo.TeamSide) -> interface.PLAYER_STATE:
     if not snapshot or not snapshot.ball:
-        raise AttributeError('invalid snapshot state - cannot define player state')
+        raise AttributeError(
+            'invalid snapshot state - cannot define player state')
 
     reader = GameSnapshotReader(snapshot, side)
     me = reader.get_player(side, player_number)
     if me is None:
-        raise AttributeError('could not find the bot in the snapshot - cannot define player state')
+        raise AttributeError(
+            'could not find the bot in the snapshot - cannot define player state')
 
     ball_holder = snapshot.ball.holder
 
