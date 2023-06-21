@@ -188,13 +188,13 @@ class GameSnapshotReader:
         # the ball velocity is summed to the kick velocity, so we have to consider the current ball direction
         diff_vector = geo.sub_vector(ball_expected_direction, ball.velocity.direction)
 
-        new_velocity = server_pb2.Velocity()
+        new_velocity = lugo.new_velocity(geo.normalize(diff_vector))
         new_velocity.speed = speed
-        new_velocity.direction = geo.normalize(diff_vector)
 
-        kick = server_pb2.Order.Kick()
-        kick.Velocity = new_velocity
-        return kick
+        order = server_pb2.Order()
+        order.kick.velocity.CopyFrom(new_velocity)
+
+        return order
 
     def make_order_kick_max_speed(self, ball: lugo.Ball, target: Point) -> lugo.Order:
         return self.make_order_kick(ball, target, specs.BALL_MAX_SPEED)
