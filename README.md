@@ -9,7 +9,22 @@ reduce the developer concerns on communication, protocols, attributes, etc.
 
 Using this client, you just need to implement the Artificial Intelligence of your player and some other few methods to support
 your strategy (see the project [exampe](./example/simple) folder).
- 
+
+# Table of Contents
+* [Requirements](#requirements)
+* [Usage](#usage)
+* [First option: Implementing a Bot class (simpler and recommended)](#first-option-implementing-a-bot-class-simpler-and-recommended)
+* [Second option: Implementing the turn handler (a little more work)](#second-option-implementing-the-turn-handler-a-little-more-work)
+* [Third option: Using reinforcement learning :brain:](#third-option-using-reinforcement-learning-brain)
+- [Helpers](#helpers)
+  * [Snapshot reader](#snapshot-reader)
+  * [Mapper and Region classes](#mapper-and-region-classes)
+    + [The Mapper](#the-mapper)
+    + [The Region](#the-region)
+
+### requirements 
+    
+    pip~=23.1.2
 
 ### Installation
 
@@ -72,6 +87,8 @@ Please find the instructions for uploading your bot on [lugobots.dev](https://lu
 
 There is a Dockerfile template in [the example directory](./examples) to guide you how to create a container.
 
+
+
 ## Helpers
 
 There are a many things that you will repeatedly need to do on your bot code, e.g. getting your bot position,
@@ -118,6 +135,38 @@ regionInFrontOfMe = targetRegion.front()
 moveOrder, err_ := reader.makeOrderMoveMaxSpeed(position, regionInFrontOfMe.center)
 
 ```
+
+### Snapshot reader
+
+The Snapshot reader is quite useful. Firs to it helps you to extract data from
+the [Game Snapshot](https://github.com/lugobots/protos/blob/master/doc/docs.md#lugo.GameSnapshot) each game turn.
+
+```Python
+reader = GameSnapshotReader(snapshot, self.side)
+reader.get_my_team()
+reader.get_team(side)
+reader.is_ball_holder(player)
+reader.get_opponent_side()
+reader.get_my_goal()
+reader.get_opponent_goal()
+reader.get_player(side, number)
+```
+And also help us to create
+the [Turn Orders Set](https://github.com/lugobots/protos/blob/master/doc/docs.md#lugo.OrderSet) based on the game state
+and our bot team side:
+
+```Python
+reader = GameSnapshotReader(snapshot, self.side)
+reader.make_order_jump(origin, target, speed)
+reader.make_order_kick(ball, target, speed)
+reader.make_order_kick_max_speed(ball, target)
+reader.make_order_move(origin, target, speed)
+reader.make_order_move_from_vector(direction, speed)
+reader.make_order_move_max_speed(origin, target)
+reader.make_order_catch()
+```
+
+And, last but not least, the Reader also helps our bot to see the game map based on directions instead of coordinates:
 
 
 ## The trainable bot
