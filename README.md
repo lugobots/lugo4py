@@ -121,6 +121,8 @@ And you may define how many columns/rows your field will be divided into.
 map = Mapper(10, 5, config.get_bot_team_side())
 
 targetRegion = map.get_region(5, 2)
+
+my_region = self.mapper.get_region_from_point(me.position) 
 ```
 
 #### The Region
@@ -129,11 +131,17 @@ The `Mapper` will slice the field into `Region`s. The Region struct helps your b
 about coordinates or team side.
 
 ```python
+target_region = me.position
 
-regionInFrontOfMe = targetRegion.front()
+region_in_front_of_me = target_region.front()
+region_in_back_of_me = target_region.back()
+region_in_left_of_me = target_region.left()
+region_in_right_of_me = target_region.right()
 
-moveOrder, err_ := reader.makeOrderMoveMaxSpeed(position, regionInFrontOfMe.center)
+my_col = target_region.get_col()
+my_row = target_region.get_row()
 
+moveOrder, err_ := reader.makeOrderMoveMaxSpeed(position, region_in_front_of_me.center)
 ```
 
 ### Snapshot reader
