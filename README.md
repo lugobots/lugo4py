@@ -12,6 +12,7 @@ your strategy (see the project [exampe](./example/simple) folder).
 
 # Table of Contents
 * [Requirements](#requirements)
+* [Installation](#Installation)
 * [Usage](#usage)
 * [First option: Implementing a Bot class (simpler and recommended)](#first-option-implementing-a-bot-class-simpler-and-recommended)
 * [Second option: Implementing the turn handler (a little more work)](#second-option-implementing-the-turn-handler-a-little-more-work)
@@ -72,6 +73,39 @@ class Bot(ABC):
         # this method in very rare cases.
         pass
 ```
+
+### First option: Implementing a Bot class (simpler and recommended)
+
+See [example](./example/simple/main.py)
+
+**Lugo4Node** client implements the method `play_as_bot(bot)` that expects an instance [bot](src/lugo4py/interface.py#L15) implementation.
+
+All you need to do is creating your bot by extending that class and implementing your bot behaviour. See an example
+at [example/simple/my_bot.py](example/simple/my_bot.py)
+
+
+### Second option: Implementing the turn handler (a little more work)
+
+As you noticed, the option 1 has some logic injected in it, so you may want to remove that layer of logic and implement
+yours.
+
+The most raw way to communicate with the lugo is receiving the game raw snapshots.
+See [example](./example/simple/index-turn-handler.js)
+
+In this case, you must use the client's `play` method. The `play` method will call your call back function for any
+message received from the game lugo.
+
+It may require that you know a bit more about the game steps, but still not too much.
+
+
+### Third option: Using reinforcement learning :brain:
+
+If you are a **machine learning** enthusiastic you may want to use the Lugo reinforcement learning environment.
+
+**Lugo bots** is an asynchronous game, so you will need to use the **Lugo4py Gym** library to create your model:
+
+See example and documentation at [RL lib readme file](src/rl/Readme.md)
+
 
 ## Kick-start
 
