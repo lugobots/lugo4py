@@ -197,7 +197,7 @@ class GameSnapshotReader:
     def make_order_kick_max_speed(self, ball: lugo.Ball, target: Point) -> lugo.Order:
         return self.make_order_kick(ball, target, specs.BALL_MAX_SPEED)
 
-    def makeOrderCatch(self) -> server_pb2.Order:
+    def make_order_catch(self) -> server_pb2.Order:
         order = server_pb2.Order()
         order.catch.SetInParent()
         return order

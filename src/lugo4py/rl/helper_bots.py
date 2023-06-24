@@ -21,7 +21,7 @@ PLAYER_POSITIONS = {
 
 def chaser_turn_handler(team_side, player_number, order_set, snapshot):
     reader = GameSnapshotReader(snapshot, team_side)
-    order_set.addOrders(reader.makeOrderCatch())
+    order_set.addOrders(reader.make_order_catch())
     me = reader.get_player(team_side, player_number)
     if not me:
         raise ValueError("did not find myself in the game")
