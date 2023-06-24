@@ -23,7 +23,7 @@ class TrainingCrl(TrainingController):
         self.OrderSet = None
         self.cycleSeq = 0
         self.bot = bot  # type: BotTrainer
-        self.debugging_log = True
+        self.debugging_log = False
         self.stopRequested = threading.Event()
         self.trainingExecutor = executor
         self.resumeListeningPhase = lambda action: print(
@@ -90,10 +90,6 @@ class TrainingCrl(TrainingController):
                 "faulty synchrony - got new turn while waiting for order (check the lugo 'timer-mode')")
 
         self._gotNextState(snapshot)
-
-        # loop = asyncio.get_running_loop()
-        # Create a new Future object.
-        # fut = loop.create_future()
         self.OrderSet = order_set
 
         waiter = threading.Event()
