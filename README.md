@@ -168,7 +168,16 @@ reader.make_order_catch()
 
 And, last but not least, the Reader also helps our bot to see the game map based on directions instead of coordinates:
 
-
+```Python
+reader.make_order_move_by_direction(DIRECTION.FORWARD)
+reader.make_order_move_by_direction(DIRECTION.BACKWARD)
+reader.make_order_move_by_direction(DIRECTION.LEFT)
+reader.make_order_move_by_direction(DIRECTION.RIGHT)
+reader.make_order_move_by_direction(DIRECTION.BACKWARD_LEFT)
+reader.make_order_move_by_direction(DIRECTION.BACKWARD_RIGHT)
+reader.make_order_move_by_direction(DIRECTION.FORWARD_LEFT)
+reader.make_order_move_by_direction(DIRECTION.FORWARD_RIGHT)
+```
 ## The trainable bot
 
 The trainable bot is an interface defined [here](../../src/lugo4py/rl/interfaces.py)
