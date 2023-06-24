@@ -166,7 +166,7 @@ moveOrder, err_ := reader.makeOrderMoveMaxSpeed(position, region_in_front_of_me.
 ### Snapshot reader
 
 The Snapshot reader is quite useful. Firs to it helps you to extract data from
-the [Game Snapshot](https://github.com/lugobots/protos/blob/master/doc/docs.md#lugo.GameSnapshot) each game turn.
+the [Game Snapshot](https://github.com/lugobots/protos/blob/master/doc/docs.md#lugo-GameSnapshot) each game turn.
 
 ```Python
 reader = GameSnapshotReader(snapshot, self.side)
@@ -179,7 +179,7 @@ reader.get_opponent_goal()
 reader.get_player(side, number)
 ```
 And also help us to create
-the [Turn Orders Set](https://github.com/lugobots/protos/blob/master/doc/docs.md#lugo.OrderSet) based on the game state
+the [Turn Orders Set](https://github.com/lugobots/protos/blob/master/doc/docs.md#lugo-OrderSet) based on the game state
 and our bot team side:
 
 ```Python
@@ -207,7 +207,7 @@ reader.make_order_move_by_direction(DIRECTION.FORWARD_RIGHT)
 ```
 ## The trainable bot
 
-The trainable bot is an interface defined [here](../../src/lugo4py/rl/interfaces.py)
+The trainable bot is an interface defined [here](src/lugo4py/rl/interfaces.py)
 
 
 ```
