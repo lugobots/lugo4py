@@ -239,10 +239,9 @@ def training(training_ctrl: TrainingController, stop_event: threading.Event):
             tf_policy_saver.save(policy_dir)
 
         if step % eval_interval == 0:
-            print('[iteration {0}] ===============TESTING======\n\n'.format(i))
             avg_return = compute_avg_return(train_env, agent.policy, num_eval_episodes)
-            print('[iteration {0}] step = {1}: Average Return = {2}'.format(i, step, avg_return))
-            print('[iteration {0}] ============================\n\n'.format(i))
+            print('[iteration {0}] step = {1}: Average Return = {2}'.format(
+                i, step, avg_return))
             returns.append(avg_return)
 
     tf_policy_saver.save(policy_dir)

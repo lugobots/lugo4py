@@ -157,7 +157,6 @@ class LugoClient(server_grpc.GameServicer):
 
 
 def NewClientFromConfig(config: EnvVarLoader, initialPosition: lugo.Point) -> LugoClient:
-    log_with_time("Creating a new client from config")
     return LugoClient(
         config.get_grpc_url(),
         config.get_grpc_insecure(),

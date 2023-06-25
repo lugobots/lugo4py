@@ -36,7 +36,6 @@ def chaser_turn_handler(team_side, player_number, order_set, snapshot):
 # @background
 def newZombieHelperPlayer(team_side, player_number, game_server_address, executor: ThreadPoolExecutor):
     def zombie_turn_handler(order_set, snapshot):
-        # print(f"Zombiw {'HOME' if team_side == 0 else 'AWAY'}-{player_number} got new snapthos")
         order_set.debug_message = f"{'HOME' if team_side == 0 else 'AWAY'}-{player_number} #{snapshot.turn}"
         return order_set
 
@@ -51,7 +50,6 @@ def newChaserHelperPlayer(team_side, player_number, game_server_address):
 def newCustomHelperPlayer(team_side, player_number, game_server_address, turn_handler_function,
                           executor: ThreadPoolExecutor):
     try:
-        # print(f'Creating {team_side} and {player_number}\n')
         initial_region = Mapper(22, 5, team_side).get_region(
             PLAYER_POSITIONS[player_number]['Col'], PLAYER_POSITIONS[player_number]['Row'])
 
@@ -67,7 +65,6 @@ def newCustomHelperPlayer(team_side, player_number, game_server_address, turn_ha
         def muted():
             None
 
-        # print(f'Vai connectar {team_side} and {player_number}\n')
         lugo_client.play(executor, turn_handler_function, muted)
         return lugo_client
     except Exception as e:

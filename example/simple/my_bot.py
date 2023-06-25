@@ -1,12 +1,12 @@
 import traceback
 from abc import ABC
 
-from lugo4py import lugo
-from lugo4py.interface import Bot, PLAYER_STATE
+from src.lugo4py import lugo
+from src.lugo4py.interface import Bot, PLAYER_STATE
 
-from lugo4py.mapper import Mapper, Region
-from lugo4py.protos.physics_pb2 import Point
-from lugo4py.snapshot import GameSnapshotReader
+from src.lugo4py.mapper import Mapper, Region
+from src.lugo4py.protos.physics_pb2 import Point
+from src.lugo4py.snapshot import GameSnapshotReader
 
 
 def get_my_expected_position(reader: GameSnapshotReader, mapper: Mapper, number: int):
