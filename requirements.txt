@@ -24,3 +24,8 @@ twine==4.0.2
 urllib3==1.26.14
 webencodings==0.5.1
 zipp==3.12.0
+
+tensorflow~=2.12.0
+numpy~=1.24.3
+pip~=23.1.2
+setuptools~=60.2.0

@@ -1,9 +1,7 @@
-from .protos import server_pb2_grpc
-from .protos import server_pb2
+import os
 
 from . import specs
-
-import os
+from .protos import server_pb2
 
 
 class EnvVarLoader:

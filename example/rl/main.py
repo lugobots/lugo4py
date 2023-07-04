@@ -102,6 +102,8 @@ if __name__ == "__main__":
     gym = Gym(gym_executor, rc, bot, my_training_function, {"debugging_log": False})
 
     players_executor = ThreadPoolExecutor(22)
+    # here we are using zombie players, but you may also use another bot or other helping players.
+    # read the main Readme file to find more ways to run other bots.
     gym.with_zombie_players(grpc_address).start(lugo_client, players_executor)
 
 

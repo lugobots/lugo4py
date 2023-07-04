@@ -1,12 +1,12 @@
 import traceback
 from abc import ABC
 
-from lugo4py import lugo
-from lugo4py.interface import Bot, PLAYER_STATE
+from src.lugo4py import lugo
+from src.lugo4py.interface import Bot, PLAYER_STATE
 
-from lugo4py.mapper import Mapper, Region
-from lugo4py.protos.physics_pb2 import Point
-from lugo4py.snapshot import GameSnapshotReader
+from src.lugo4py.mapper import Mapper, Region
+from src.lugo4py.protos.physics_pb2 import Point
+from src.lugo4py.snapshot import GameSnapshotReader
 
 
 def get_my_expected_position(reader: GameSnapshotReader, mapper: Mapper, number: int):
@@ -110,7 +110,7 @@ class MyBot(Bot, ABC):
             move_order = reader.make_order_move_max_speed(me.position, move_destination)
 
             # we can ALWAYS try to catch the ball
-            catch_order = reader.makeOrderCatch()
+            catch_order = reader.make_order_catch()
 
             order_set.turn = snapshot.turn
             order_set.orders.extend([move_order, catch_order])
@@ -137,7 +137,7 @@ class MyBot(Bot, ABC):
                 order_set.debug_message = "Defending: trying to catch the ball"
 
             move_order = reader.make_order_move_max_speed(me.position, move_dest)
-            catch_order = reader.makeOrderCatch()
+            catch_order = reader.make_order_catch()
 
             order_set.turn = snapshot.turn
             order_set.orders.extend([move_order, catch_order])
@@ -201,7 +201,7 @@ class MyBot(Bot, ABC):
 
             order_set.turn = snapshot.turn
             order_set.debug_message = "defending the goal"
-            order_set.orders.extend([my_order, reader.makeOrderCatch()])
+            order_set.orders.extend([my_order, reader.make_order_catch()])
             return order_set
 
         except Exception as e:
