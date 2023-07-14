@@ -43,8 +43,8 @@ FIELD_WIDTH = max_x_coordinate + 1
 # Thus, the field height would have to be 11, so the coordinate 5 is at the precise center
 FIELD_HEIGHT = max_y_coordinate + 1
 
-# FIELD_NEUTRAL_CENTER is the radius of the neutral circle on the center of the field
-FIELD_NEUTRAL_CENTER = 100
+# FIELD_NEUTRAL_CENTER is the radius of the neutral circle in the center of the field
+FIELD_NEUTRAL_CENTER = 1000
 
 # BALL_SIZE size of the element ball
 BALL_SIZE = 2 * BASE_UNIT
