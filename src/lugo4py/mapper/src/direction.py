@@ -1,6 +1,8 @@
 from ...protos.physics_pb2 import Point
 
 from ...src.specs import *
+from ...src.goal import Goal
+from ...protos import server_pb2
 
 class Direction(object):
     pass
@@ -39,3 +41,16 @@ awayGoalTopPole.y = int(GOAL_MAX_Y)
 awayGoalBottomPole = Point()
 awayGoalBottomPole.x = int(MAX_X_COORDINATE)
 awayGoalBottomPole.y = int(GOAL_MIN_Y)
+
+awayGoal = Goal(
+    server_pb2.Team.Side.AWAY,
+    awayGoalCenter,
+    awayGoalTopPole,
+    awayGoalBottomPole
+)
+homeGoal = Goal(
+    server_pb2.Team.Side.HOME,
+    homeGoalCenter,
+    homeGoalTopPole,
+    homeGoalBottomPole
+)

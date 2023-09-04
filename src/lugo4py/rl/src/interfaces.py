@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Callable, Any
 
-from src.lugo4py.src import lugo
+from ...src import lugo
 
 
 #

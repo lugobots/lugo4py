@@ -25,10 +25,6 @@ class Vector:
         self.y = y
 
 
-def new_vector() -> Vector:
-    return physics_pb2.Vector()
-
-
 class Point:
     def __init__(self, x=0, y=0):
         self.x = x

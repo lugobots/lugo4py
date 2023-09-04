@@ -2,13 +2,13 @@ import threading
 
 import grpc
 
-from src.lugo4py.src import lugo
-from src.lugo4py.protos.remote_pb2 import (
+from ...src import lugo
+from ...protos.remote_pb2 import (
     PauseResumeRequest, NextTurnRequest, NextOrderRequest,
     BallProperties, PlayerProperties, GameProperties,
     ResumeListeningRequest
 )
-from src.lugo4py.protos.remote_pb2_grpc import RemoteStub
+from ...protos.remote_pb2_grpc import RemoteStub
 
 
 class RemoteControl:

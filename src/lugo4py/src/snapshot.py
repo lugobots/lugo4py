@@ -1,5 +1,5 @@
 from . import lugo, geo, interface, specs
-from ..mapper import DIRECTION, ORIENTATION, awayGoalCenter, awayGoalTopPole, awayGoalBottomPole, homeGoalCenter, homeGoalTopPole, homeGoalBottomPole
+from ..mapper import DIRECTION, ORIENTATION, homeGoal, awayGoal
 from .goal import Goal
 from ..mapper.src.orientation import NORTH
 from ..protos import server_pb2
@@ -164,18 +164,7 @@ class GameSnapshotReader:
         return order
 
 
-awayGoal = Goal(
-    server_pb2.Team.Side.AWAY,
-    awayGoalCenter,
-    awayGoalTopPole,
-    awayGoalBottomPole
-)
-homeGoal = Goal(
-    server_pb2.Team.Side.HOME,
-    homeGoalCenter,
-    homeGoalTopPole,
-    homeGoalBottomPole
-)
+
 
 
 def define_state(snapshot: lugo.GameSnapshot, player_number: int, side: lugo.TeamSide) -> interface.PLAYER_STATE:

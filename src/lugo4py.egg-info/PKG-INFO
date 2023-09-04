@@ -1,9 +1,9 @@
 Metadata-Version: 2.1
 Name: lugo4py
-Version: 0.0.4
+Version: 0.0.5.8
 Summary: Lugo4Py is a Python3 implementation of a client player for Lugo game.
 Home-page: https://lugobots.dev/
-Author: "Rubens Silva, Lucas Coelho"
+Author: "Angelo Katipunan, Rubens Silva, Lucas Coelho, Victor Aquer"
 Project-URL: Homepage, https://lugobots.dev/
 Project-URL: Repository, https://github.com/lugobots/lugo4py
 Requires-Python: >=3.9
@@ -89,7 +89,7 @@ class Bot(ABC):
 
 See [example](./example/simple/main.py)
 
-**Lugo4py** client implements the method `play_as_bot(bot)` that expects an instance [bot](src/lugo4py/interface.py#L15) implementation.
+**Lugo4py** client implements the method `play_as_bot(bot)` that expects an instance [bot](src/lugo4py/src/interface.py#L15) implementation.
 
 All you need to do is creating your bot by extending that class and implementing your bot behaviour. See an example
 at [example/simple/my_bot.py](example/simple/my_bot.py)
@@ -219,7 +219,7 @@ reader.make_order_move_by_direction(DIRECTION.FORWARD_RIGHT)
 ```
 ## The trainable bot
 
-The trainable bot is an interface defined [here](src/lugo4py/rl/interfaces.py)
+The trainable bot is an interface defined [here](src/lugo4py/rl/src/interfaces.py)
 
 
 ```

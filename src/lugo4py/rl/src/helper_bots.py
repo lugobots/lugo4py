@@ -1,7 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 
-import src.lugo4py as lugo4py
-import src.lugo4py.mapper as mapper
+from ...src import client
+from ... import mapper
 
 PLAYER_POSITIONS = {
     1: {'Col': 0, 'Row': 1},
@@ -19,7 +19,7 @@ PLAYER_POSITIONS = {
 
 
 def chaser_turn_handler(team_side, player_number, order_set, snapshot):
-    reader = lugo4py.GameSnapshotReader(snapshot, team_side)
+    reader = snapshot.GameSnapshotReader(snapshot, team_side)
     order_set.addOrders(reader.make_order_catch())
     me = reader.get_player(team_side, player_number)
     if not me:
@@ -34,8 +34,8 @@ def chaser_turn_handler(team_side, player_number, order_set, snapshot):
 
 # @background
 def newZombieHelperPlayer(team_side, player_number, game_server_address, executor: ThreadPoolExecutor):
-    def zombie_turn_handler(order_set, snapshot):
-        order_set.debug_message = f"{'HOME' if team_side == 0 else 'AWAY'}-{player_number} #{snapshot.turn}"
+    def zombie_turn_handler(order_set, game_snapshot):
+        order_set.debug_message = f"{'HOME' if team_side == 0 else 'AWAY'}-{player_number} #{game_snapshot.turn}"
         return order_set
 
     #
@@ -52,7 +52,7 @@ def newCustomHelperPlayer(team_side, player_number, game_server_address, turn_ha
         initial_region = mapper.Mapper(22, 5, team_side).get_region(
             PLAYER_POSITIONS[player_number]['Col'], PLAYER_POSITIONS[player_number]['Row'])
 
-        lugo_client = lugo4py.LugoClient(
+        lugo_client = client.LugoClient(
             game_server_address,
             True,
             "",

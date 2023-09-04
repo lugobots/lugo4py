@@ -1,5 +1,5 @@
-from src.lugo4py.protos import physics_pb2
-from src.lugo4py.src import geo
+from ...protos import physics_pb2
+from ...src import geo
 
 east_vector = physics_pb2.Vector()
 east_vector.x = 1

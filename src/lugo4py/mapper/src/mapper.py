@@ -1,7 +1,7 @@
-from src.lugo4py.protos import physics_pb2
-from src.lugo4py.protos import server_pb2
+from ...protos import physics_pb2
+from ...protos import server_pb2
 
-from src.lugo4py.src import specs
+from ...src import specs
 
 from math import floor
 
