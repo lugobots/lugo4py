@@ -1,5 +1,5 @@
-from .protos import physics_pb2
-from . import geo
+from src.lugo4py.protos import physics_pb2
+from src.lugo4py.src import geo
 
 east_vector = physics_pb2.Vector()
 east_vector.x = 1
@@ -35,3 +35,16 @@ NORTH_EAST = geo.normalize(northeast_vector)
 NORTH_WEST = geo.normalize(northwest_vector)
 SOUTH_EAST = geo.normalize(southeast_vector)
 SOUTH_WEST = geo.normalize(southwest_vector)
+
+class Orientation(object):
+    pass
+
+ORIENTATION = Orientation()
+ORIENTATION.EAST = EAST
+ORIENTATION.WEST = WEST
+ORIENTATION.SOUTH = SOUTH
+ORIENTATION.NORTH = NORTH
+ORIENTATION.NORTH_EAST = NORTH_EAST
+ORIENTATION.NORTH_WEST = NORTH_WEST
+ORIENTATION.SOUTH_EAST = SOUTH_EAST
+ORIENTATION.SOUTH_WEST = SOUTH_WEST

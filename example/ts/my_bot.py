@@ -3,12 +3,16 @@ import time
 from enum import Enum
 from math import hypot
 from typing import Any, List, Optional
+import sys
 
-from src.lugo4py import orientation, lugo, specs, geo
-from src.lugo4py.mapper import Mapper, Region
-from src.lugo4py.rl.interfaces import BotTrainer
-from src.lugo4py.rl.remote_control import RemoteControl
-from src.lugo4py.snapshot import GameSnapshotReader
+
+sys.path.append("../../src")
+sys.path.append("./src")
+
+import src.lugo4py as lugo4py
+import src.lugo4py.mapper as mapper
+import src.lugo4py.rl as rl
+
 
 TRAINING_PLAYER_NUMBER = 5
 
@@ -22,37 +26,37 @@ class SensorArea(Enum):
     BACK_RIGHT = 5
 
 
-class MyBotTrainer(BotTrainer):
-    def __init__(self, remote_control: RemoteControl):
+class MyBotTrainer(interfaces.BotTrainer):
+    def __init__(self, remote_control: training_controller.RemoteControl):
         self.remote_control = remote_control
         self.Mapper = None
 
     def set_environment(self, data: Any):
-        self.Mapper = Mapper(20, 10, lugo.TeamSide.HOME)
+        self.Mapper = Mapper(20, 10, TeamSide.HOME)
 
         for i in range(1, 12):
-            self._random_player_pos(self.Mapper, lugo.TeamSide.HOME, i)
-            self._random_player_pos(self.Mapper, lugo.TeamSide.AWAY, i)
+            self._random_player_pos(self.Mapper, TeamSide.HOME, i)
+            self._random_player_pos(self.Mapper, TeamSide.AWAY, i)
 
-        random_velocity = _create_velocity(0, orientation.NORTH)
+        random_velocity = _create_velocity(0, ORIENTATION.NORTH)
         pos = self.Mapper.get_region(10, random.randint(2, 7)).get_center()
-        self.remote_control.set_player_props(lugo.TeamSide.HOME, TRAINING_PLAYER_NUMBER, pos, random_velocity)
+        self.remote_control.set_player_props(TeamSide.HOME, TRAINING_PLAYER_NUMBER, pos, random_velocity)
 
         ball_pos = self.Mapper.get_region(0, 0).get_center()
-        ball_velocity = _create_velocity(0, orientation.NORTH)
+        ball_velocity = _create_velocity(0, ORIENTATION.NORTH)
         self.remote_control.set_game_props(1)
         return self.remote_control.set_ball_rops(ball_pos, ball_velocity).game_snapshot
 
-    def get_state(self, snapshot: lugo.GameSnapshot):
+    def get_state(self, snapshot: GameSnapshot):
         if snapshot is None:
             raise ValueError("got None as snapshot - something went wrong")
-        reader = GameSnapshotReader(snapshot, lugo.TeamSide.HOME)
+        reader = GameSnapshotReader(snapshot, TeamSide.HOME)
         me = self.get_me(reader)
 
         goal_position = reader.get_opponent_goal().get_center()
 
         return [
-            abs(goal_position.x - me.position.x) / specs.FIELD_WIDTH,
+            abs(goal_position.x - me.position.x) /  FIELD_WIDTH,
             abs(goal_position.y - me.position.y) / specs.FIELD_HEIGHT,
             self.steps_to_obstacle_within_area(reader, SensorArea.FRONT),
             self.steps_to_obstacle_within_area(reader, SensorArea.FRONT_LEFT),
@@ -109,22 +113,22 @@ class MyBotTrainer(BotTrainer):
 
         return 1
 
-    def get_me(self, reader: GameSnapshotReader) -> lugo.Player:
-        me = reader.get_player(lugo.TeamSide.HOME, TRAINING_PLAYER_NUMBER)
+    def get_me(self, reader: GameSnapshotReader) -> Player:
+        me = reader.get_player(TeamSide.HOME, TRAINING_PLAYER_NUMBER)
         if me is None:
             raise ValueError("did not find myself in the game")
         return me
 
-    def play(self, order_set: lugo.OrderSet, snapshot: lugo.GameSnapshot, action: Any) -> lugo.OrderSet:
+    def play(self, order_set: OrderSet, snapshot: GameSnapshot, action: Any) -> OrderSet:
         # print(f"GOT ACTION -> {action}")
-        reader = GameSnapshotReader(snapshot, lugo.TeamSide.HOME)
+        reader = GameSnapshotReader(snapshot, TeamSide.HOME)
         direction = reader.make_order_move_by_direction(action)
         order_set.orders.extend([direction])
         return order_set
 
-    def evaluate(self, previous_snapshot: lugo.GameSnapshot, new_snapshot: lugo.GameSnapshot) -> Any:
-        reader_previous = GameSnapshotReader(previous_snapshot, lugo.TeamSide.HOME)
-        reader = GameSnapshotReader(new_snapshot, lugo.TeamSide.HOME)
+    def evaluate(self, previous_snapshot: GameSnapshot, new_snapshot: GameSnapshot) -> Any:
+        reader_previous = GameSnapshotReader(previous_snapshot, TeamSide.HOME)
+        reader = GameSnapshotReader(new_snapshot, TeamSide.HOME)
         me = self.get_me(reader)
         me_previously = self.get_me(reader_previous)
 
@@ -135,7 +139,7 @@ class MyBotTrainer(BotTrainer):
         actual_dist = hypot(opponent_goal.x - me.position.x,
                             opponent_goal.y - me.position.y)
 
-        reward = (previous_dist - actual_dist)/specs.PLAYER_MAX_SPEED
+        reward = (previous_dist - actual_dist) / specs.PLAYER_MAX_SPEED
         done = False
 
         if me.position.x > (specs.FIELD_WIDTH - specs.GOAL_ZONE_RANGE) * 0.90:  # positive end
@@ -160,13 +164,13 @@ class MyBotTrainer(BotTrainer):
 
         return {'done': done, 'reward': reward}
 
-    def _random_player_pos(self, mapper: Mapper, side: lugo.TeamSide, number: int) -> None:
+    def _random_player_pos(self, mapper: Mapper, side: TeamSide, number: int) -> None:
         min_col = 7
         max_col = 17
         min_row = 1
         max_row = 8
 
-        random_velocity = _create_velocity(0, orientation.NORTH)
+        random_velocity = _create_velocity(0, ORIENTATION.NORTH)
 
         random_col = random.randint(min_col, max_col)
         random_row = random.randint(min_row, max_row)
@@ -197,8 +201,8 @@ class MyBotTrainer(BotTrainer):
         return mapped_opponents[col][row] is True
 
 
-def _create_velocity(speed: float, direction) -> lugo.Velocity:
-    velocity = lugo.new_velocity(direction)
+def _create_velocity(speed: float, direction) -> Velocity:
+    velocity = new_velocity(direction)
     velocity.speed = speed
     return velocity
 

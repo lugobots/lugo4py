@@ -1,4 +1,4 @@
-from . import lugo
+from ..src import lugo
 from abc import ABC, abstractmethod
 
 

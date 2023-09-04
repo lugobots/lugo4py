@@ -4,10 +4,8 @@ from .training_controller import TrainingCrl
 from .helper_bots import newChaserHelperPlayer, newZombieHelperPlayer
 from .remote_control import RemoteControl
 from .interfaces import BotTrainer, TrainingFunction
-from ..client import LugoClient
-from ..protos.server_pb2 import Team, OrderSet
-import asyncio
-from threading import Timer
+import src.lugo4py as lugo4py
+from src.lugo4py.protos.server_pb2 import Team
 import threading
 
 from concurrent.futures import ThreadPoolExecutor
@@ -36,7 +34,7 @@ class Gym:
         self.helperPlayers = None
         self.players = []
 
-    def start(self, lugo_client: LugoClient, executor: ThreadPoolExecutor):
+    def start(self, lugo_client: lugo4py.LugoClient, executor: ThreadPoolExecutor):
         hasStarted = False
 
         def play_callback(orderSet, snapshot):

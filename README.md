@@ -77,7 +77,7 @@ class Bot(ABC):
 
 See [example](./example/simple/main.py)
 
-**Lugo4py** client implements the method `play_as_bot(bot)` that expects an instance [bot](src/lugo4py/interface.py#L15) implementation.
+**Lugo4py** client implements the method `play_as_bot(bot)` that expects an instance [bot](src/lugo4py/src/interface.py#L15) implementation.
 
 All you need to do is creating your bot by extending that class and implementing your bot behaviour. See an example
 at [example/simple/my_bot.py](example/simple/my_bot.py)
@@ -207,7 +207,7 @@ reader.make_order_move_by_direction(DIRECTION.FORWARD_RIGHT)
 ```
 ## The trainable bot
 
-The trainable bot is an interface defined [here](src/lugo4py/rl/interfaces.py)
+The trainable bot is an interface defined [here](src/lugo4py/rl/src/interfaces.py)
 
 
 ```

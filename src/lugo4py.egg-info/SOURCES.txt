@@ -6,12 +6,13 @@ src/lugo4py/__init__.py
 src/lugo4py/client.py
 src/lugo4py/geo.py
 src/lugo4py/goal.py
+src/lugo4py/interface.py
 src/lugo4py/loader.py
+src/lugo4py/lugo.py
 src/lugo4py/mapper.py
 src/lugo4py/orientation.py
 src/lugo4py/snapshot.py
 src/lugo4py/specs.py
-src/lugo4py/stub.py
 src/lugo4py.egg-info/PKG-INFO
 src/lugo4py.egg-info/SOURCES.txt
 src/lugo4py.egg-info/dependency_links.txt
@@ -29,7 +30,7 @@ src/lugo4py/protos/server_pb2.py
 src/lugo4py/protos/server_pb2_grpc.py
 src/lugo4py/rl/__init__.py
 src/lugo4py/rl/gym.py
+src/lugo4py/rl/helper_bots.py
 src/lugo4py/rl/interfaces.py
 src/lugo4py/rl/remote_control.py
 src/lugo4py/rl/training_controller.py
-src/lugo4py/rl/helper_bots.py

@@ -1,7 +1,8 @@
 import os
 
 from . import specs
-from .protos import server_pb2
+
+from ..protos import server_pb2
 
 
 class EnvVarLoader:

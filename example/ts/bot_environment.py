@@ -1,16 +1,18 @@
 import sys
 import time
+sys.path.append("../../src")
+sys.path.append("./src")
 
 import numpy as np
 from tf_agents.environments.py_environment import PyEnvironment
 from tf_agents.specs import array_spec
 from tf_agents.trajectories import time_step as ts
-from src.lugo4py.rl.training_controller import TrainingController
+import lugo4py.rl.training_controller as rl
 
 
 class GameEnvironment(PyEnvironment):
 
-    def __init__(self, training_ctrl: TrainingController):
+    def __init__(self, training_ctrl: rl.TrainingController):
         self.num_actions = 8
         self.num_sensors = 8
 

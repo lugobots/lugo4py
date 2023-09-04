@@ -1,5 +1,5 @@
 from . import lugo
-from .protos import physics_pb2
+from ..protos import physics_pb2
 from math import hypot
 
 

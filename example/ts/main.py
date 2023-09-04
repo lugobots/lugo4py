@@ -29,12 +29,10 @@ from tf_agents.utils import common
 
 from bot_environment import GameEnvironment
 from my_bot import MyBotTrainer, TRAINING_PLAYER_NUMBER
-from src.lugo4py import lugo
-from src.lugo4py.client import LugoClient
-from src.lugo4py.mapper import Mapper
-from src.lugo4py.rl.gym import Gym
-from src.lugo4py.rl.remote_control import RemoteControl
-from src.lugo4py.rl.training_controller import TrainingController
+from src.lugo4py.src import lugo
+from src.lugo4py.src.client import LugoClient
+from src.lugo4py.mapper.src.mapper import Mapper
+
 
 num_iterations = 600000  # @param {type:"integer"}
 

@@ -6,8 +6,8 @@ from typing import Callable, Iterator
 
 from . import lugo
 
-from .protos import server_pb2
-from .protos import server_pb2_grpc as server_grpc
+from ..protos import server_pb2
+from ..protos import server_pb2_grpc as server_grpc
 
 from .interface import Bot, PLAYER_STATE
 from .loader import EnvVarLoader
@@ -113,6 +113,7 @@ class LugoClient(server_grpc.GameServicer):
             f"the server")
         self._play_routine.cancel()
         self._play_finished.set()
+        exit(0)
 
     def wait(self):
         self._play_finished.wait(timeout=None)

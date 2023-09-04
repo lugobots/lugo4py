@@ -1,14 +1,14 @@
 import os
 import signal
 import sys
+from concurrent.futures import ThreadPoolExecutor
 
 # both src are necessary to account for execution on docker and on project folder
-sys.path.append("../../src")
-sys.path.append("./src")
-from concurrent.futures import ThreadPoolExecutor
-from lugo4py.loader import EnvVarLoader
-from lugo4py.mapper import Mapper
-from lugo4py.client import NewClientFromConfig
+sys.path.append("../..")
+import src.lugo4py as  lugo4py
+import src.lugo4py.mapper as  mapper
+
+
 from my_bot import MyBot
 
 PLAYER_POSITIONS = {
@@ -35,20 +35,20 @@ if __name__ == "__main__":
     # We must load the env vars following the standard defined by the game specs because all bots will receive the
     # arguments in the same format (env vars)
 
-    config = EnvVarLoader()
+    config = lugo4py.EnvVarLoader()
 
     # The map will help us to see the field in quadrants (called regions) instead of working with coordinates
-    mapper = Mapper(10, 6, config.get_bot_team_side())
+    my_mapper = mapper.Mapper(10, 6, config.get_bot_team_side())
 
     # Our bot strategy defines our bot initial position based on its number
-    initialRegion = mapper.get_region(PLAYER_POSITIONS[config.get_bot_number()]['Col'],
-                                      PLAYER_POSITIONS[config.get_bot_number()]['Row'])
+    initialRegion = my_mapper.get_region(PLAYER_POSITIONS[config.get_bot_number()]['Col'],
+                                         PLAYER_POSITIONS[config.get_bot_number()]['Row'])
 
     # Now we can create the bot. We will use a shortcut to create the client from the config, but we could use the
     # client constructor as well
-    lugo_client = NewClientFromConfig(config, initialRegion.get_center())
+    lugo_client = lugo4py.NewClientFromConfig(config, initialRegion.get_center())
 
-    my_bot = MyBot(config.get_bot_team_side(), config.get_bot_number(), initialRegion.get_center(), mapper)
+    my_bot = MyBot(config.get_bot_team_side(), config.get_bot_number(), initialRegion.get_center(), my_mapper)
 
 
     def on_join():

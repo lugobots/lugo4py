@@ -1,8 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 
-from ..client import LugoClient
-from ..mapper import Mapper
-from ..snapshot import GameSnapshotReader
+import src.lugo4py as lugo4py
+import src.lugo4py.mapper as mapper
 
 PLAYER_POSITIONS = {
     1: {'Col': 0, 'Row': 1},
@@ -20,14 +19,14 @@ PLAYER_POSITIONS = {
 
 
 def chaser_turn_handler(team_side, player_number, order_set, snapshot):
-    reader = GameSnapshotReader(snapshot, team_side)
+    reader = lugo4py.GameSnapshotReader(snapshot, team_side)
     order_set.addOrders(reader.make_order_catch())
     me = reader.get_player(team_side, player_number)
     if not me:
         raise ValueError("did not find myself in the game")
 
     order_set.addOrders(reader.make_order_move_max_speed(
-        me.getPosition(), snapshot.getBall().getPosition()))
+        me.position, snapshot.ball))
     order_set.setDebugMessage(
         f"{'HOME' if team_side == 0 else 'AWAY'}-{player_number} #{snapshot.turn} - chasing ball")
     return order_set
@@ -50,10 +49,10 @@ def newChaserHelperPlayer(team_side, player_number, game_server_address):
 def newCustomHelperPlayer(team_side, player_number, game_server_address, turn_handler_function,
                           executor: ThreadPoolExecutor):
     try:
-        initial_region = Mapper(22, 5, team_side).get_region(
+        initial_region = mapper.Mapper(22, 5, team_side).get_region(
             PLAYER_POSITIONS[player_number]['Col'], PLAYER_POSITIONS[player_number]['Row'])
 
-        lugo_client = LugoClient(
+        lugo_client = lugo4py.LugoClient(
             game_server_address,
             True,
             "",

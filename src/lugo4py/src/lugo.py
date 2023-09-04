@@ -16,7 +16,7 @@ If you are looking for the real implementation of these methods, please look at 
 from enum import IntEnum
 from typing import List
 
-from .protos import physics_pb2
+from ..protos import physics_pb2
 
 
 class Vector:

@@ -1,6 +1,6 @@
 from . import lugo
-from .protos.physics_pb2 import Point
-from .protos.server_pb2 import Team
+from ..protos.physics_pb2 import Point
+from ..protos.server_pb2 import Team
 
 
 class Goal(object):
