@@ -1,6 +1,6 @@
 # Lugo Reinforcement Learning 
 
-See example at the [RL example](../../example/rl)
+See example at the [RL example](../../../../example/rl/README.md)
 
 ## How to use the RL lib?
 
