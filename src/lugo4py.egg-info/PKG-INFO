@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: lugo4py
-Version: 0.0.5.8
+Version: 0.0.6
 Summary: Lugo4Py is a Python3 implementation of a client player for Lugo game.
 Home-page: https://lugobots.dev/
 Author: "Angelo Katipunan, Rubens Silva, Lucas Coelho, Victor Aquer"
@@ -47,39 +47,39 @@ your strategy (see the project [exampe](./example/simple) folder).
 **Lugo4Py** implements a very basic logic to reduce the code boilerplate. This client will wrap most repetitive
 code that handles the raw data got by the bot and will identify the player state.
 
-Implement the [Bot interface](./src/lugo4py/stub.py) to handle each player state based on the ball possession.
+Implement the [Bot interface](./src/lugo4py/src/interface.py) to handle each player state based on the ball possession.
 
 ```python
 
 class Bot(ABC):
     @abstractmethod
-    def on_disputing (self, orderSet: lugo4py.OrderSet, snapshot: GameSnapshot) -> OrderSet:
+    def on_disputing (self, orderSet: lugo4py.OrderSet, snapshot: lugo4py.GameSnapshot) -> lugo4py.OrderSet:
         # on_disputing is called when no one has the ball possession
         pass
 
     @abstractmethod
-    def on_defending (self, orderSet: OrderSet, snapshot: GameSnapshot) -> OrderSet:
+    def on_defending (self, orderSet: lugo4py.OrderSet, snapshot: lugo4py.GameSnapshot) -> lugo4py.OrderSet:
         # OnDefending is called when an opponent player has the ball possession
         pass
 
     @abstractmethod
-    def on_holding (self, orderSet: OrderSet, snapshot: GameSnapshot) -> OrderSet:
+    def on_holding (self, orderSet: lugo4py.OrderSet, snapshot: lugo4py.GameSnapshot) -> lugo4py.OrderSet:
         # OnHolding is called when this bot has the ball possession
         pass
 
     @abstractmethod
-    def on_supporting (self, orderSet: OrderSet, snapshot: GameSnapshot) -> OrderSet:
+    def on_supporting (self, orderSet: lugo4py.OrderSet, snapshot: lugo4py.GameSnapshot) -> lugo4py.OrderSet:
         # OnSupporting is called when a teammate player has the ball possession
         pass
 
     @abstractmethod
-    def as_goalkeeper (self, orderSet: OrderSet, snapshot: GameSnapshot, state: PLAYER_STATE) -> OrderSet:
+    def as_goalkeeper (self, orderSet: lugo4py.OrderSet, snapshot: lugo4py.GameSnapshot, state: PLAYER_STATE) -> lugo4py.OrderSet:
         # AsGoalkeeper is only called when this bot is the goalkeeper (number 1). This method is called on every turn,
         # and the player state is passed at the last parameter.
         pass
 
     @abstractmethod
-    def getting_ready (self, snapshot: GameSnapshot):
+    def getting_ready (self, snapshot: lugo4py.GameSnapshot):
         # getting_ready will be called before the game starts and after a goal event. You will only need to implement
         # this method in very rare cases.
         pass
@@ -101,13 +101,13 @@ If you are a **machine learning** enthusiastic you may want to use the Lugo rein
 
 **Lugo bots** is an asynchronous game, so you will need to use the **Lugo4py Gym** library to create your model:
 
-See example and documentation at [RL lib readme file](src/rl/Readme.md)
+See example and documentation at [RL lib readme file](src/lugo4py/rl/src/README.md)
 
 
 ## Kick-start
 
-You may copy the code from [the example directory](./examples) to start you bot, but we encourage you to clone 
-[The Dummies Py](https://github.com/lugobots/the-dummies-py) project and start from there. The read me file will have all
+**Ee encourage you to clone 
+[The Dummies Py](https://github.com/lugobots/the-dummies-py)** project and start from there. The read me file will have all
 details you need.
 
 ### Deploying you bots
@@ -130,9 +130,9 @@ This package brings a collection of functions that will help you get that data f
 
 ```python
 
-config = EnvVarLoader()
+config = lugo4py.EnvVarLoader()
 
-reader = GameSnapshotReader(snapshot, self.side)
+reader = lugo4py.GameSnapshotReader(snapshot, bot.side)
 ```
 
 ### Mapper and Region
@@ -149,11 +149,11 @@ And you may define how many columns/rows your field will be divided into.
 ```python
 
 # let's create a map 10x5 
-map = Mapper(10, 5, config.get_bot_team_side())
+map = lugo4py.Mapper(10, 5, config.get_bot_team_side())
 
 targetRegion = map.get_region(5, 2)
 
-my_region = self.mapper.get_region_from_point(me.position) 
+my_region = mapper.get_region_from_point(me.position) 
 ```
 
 #### The Region
@@ -162,7 +162,7 @@ The `Mapper` will slice the field into `Region`s. The Region struct helps your b
 about coordinates or team side.
 
 ```python
-target_region = me.position
+target_region = map.get_region_from_point(bot.position)
 
 region_in_front_of_me = target_region.front()
 region_in_back_of_me = target_region.back()
@@ -181,7 +181,7 @@ The Snapshot reader is quite useful. Firs to it helps you to extract data from
 the [Game Snapshot](https://github.com/lugobots/protos/blob/master/doc/docs.md#lugo-GameSnapshot) each game turn.
 
 ```Python
-reader = GameSnapshotReader(snapshot, self.side)
+reader = lugo4py.GameSnapshotReader(snapshot, self.side)
 reader.get_my_team()
 reader.get_team(side)
 reader.is_ball_holder(player)
@@ -195,7 +195,7 @@ the [Turn Orders Set](https://github.com/lugobots/protos/blob/master/doc/docs.md
 and our bot team side:
 
 ```Python
-reader = GameSnapshotReader(snapshot, self.side)
+reader = lugo4py.GameSnapshotReader(snapshot, bot.side)
 reader.make_order_jump(origin, target, speed)
 reader.make_order_kick(ball, target, speed)
 reader.make_order_kick_max_speed(ball, target)
