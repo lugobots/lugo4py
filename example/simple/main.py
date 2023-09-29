@@ -27,11 +27,6 @@ PLAYER_POSITIONS = {
 
 if __name__ == "__main__":
     # Set necessary env variables for testing
-    if False:
-        os.environ['BOT_TEAM'] = 'HOME'
-        os.environ['BOT_NUMBER'] = '2'
-        os.environ['BOT_GRPC_URL'] = 'localhost:5000'
-
     # We must load the env vars following the standard defined by the game specs because all bots will receive the
     # arguments in the same format (env vars)
 

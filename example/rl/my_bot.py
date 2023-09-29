@@ -17,7 +17,7 @@ class MyBotTrainer(BotTrainer):
         self.remote_control = remote_control
         self.Mapper = None
 
-    def set_environment(self, data: Any):
+    def set_environment(self, data: Any) -> snapshot:
         self.Mapper = Mapper(20, 10, lugo.TeamSide.HOME)
 
         for i in range(1, 12):

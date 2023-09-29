@@ -6,21 +6,6 @@ import src.lugo4py.mapper as mapper
 
 class MyBot(lugo4py.Bot, ABC):
 
-    def __init__(self, side: lugo4py.TeamSide, number: int, init_position: lugo4py.Point, my_mapper: mapper.Mapper):
-        self.number = number
-        self.side = side
-        self.mapper = my_mapper
-        self.initPosition = init_position
-        my_mapper.get_region_from_point(init_position)
-
-    def make_reader(self, snapshot: lugo4py.GameSnapshot):
-        reader = lugo4py.GameSnapshotReader(snapshot, self.side)
-        me = reader.get_player(self.side, self.number)
-        if me is None:
-            raise AttributeError("did not find myself in the game")
-
-        return reader, me
-
     def is_near(self, region_origin: mapper.Region, dest_origin: mapper.Region) -> bool:
         max_distance = 2
         return abs(region_origin.get_row() - dest_origin.get_row()) <= max_distance and abs(
