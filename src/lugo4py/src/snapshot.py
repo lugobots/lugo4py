@@ -78,7 +78,7 @@ class GameSnapshotReader:
         order.move.velocity.speed = speed
         return order
 
-    def make_order_move_by_direction(self, direction) -> lugo.Order:
+    def make_order_move_by_direction(self, direction: DIRECTION) -> lugo.Order:
         if direction == DIRECTION.FORWARD:
             direction_target = ORIENTATION.EAST
             if self.my_side == server_pb2.Team.Side.AWAY:
