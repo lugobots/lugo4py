@@ -1,7 +1,7 @@
 from ..src import lugo, snapshot
 from ..mapper import Mapper
 from abc import ABC, abstractmethod
-
+from typing import Tuple
 
 class PlayerState(object):
     """
@@ -134,7 +134,7 @@ class Bot(ABC):
         """
         pass
 
-    def make_reader(self, game_snapshot: lugo.GameSnapshot):
+    def make_reader(self, game_snapshot: lugo.GameSnapshot) -> Tuple[snapshot.GameSnapshotReader, lugo.Player]:
         """
         Create a game snapshot reader for the bot's side and retrieve the bot's player information.
 

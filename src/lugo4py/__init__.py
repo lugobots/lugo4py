@@ -17,7 +17,7 @@ from .src.lugo import Order, OrderSet, Point, Vector, new_velocity, Velocity, Te
     ResumeListeningRequest, PauseResumeRequest, JoinRequest, NextOrderRequest, NextTurnRequest, StatusCode, Jump, Kick, \
     Move, Catch, \
     ShotClock, RemoteServicer
-from ..lugo4py.mapper import *
+from .mapper import *
 
 from .src.snapshot import GameSnapshotReader
 
