@@ -7,6 +7,33 @@ from ..protos.physics_pb2 import Point
 
 
 class GameSnapshotReader:
+    """
+    Utility class for reading game snapshots and making orders for a bot.
+
+    Attributes:
+        snapshot (GameSnapshot): The current game snapshot.
+        my_side (TeamSide): The side to which the bot belongs.
+
+    Methods:
+        get_my_team() -> Team: Get the team to which the bot belongs.
+        get_opponent_team() -> Team: Get the opponent team.
+        get_team(side) -> Team: Get a specific team.
+        is_ball_holder(player: Player) -> bool: Check if a player is currently holding the ball.
+        get_opponent_side() -> TeamSide: Get the opponent's side.
+        get_my_goal() -> Goal: Get the goal on the bot's side.
+        get_ball() -> Ball: Get the current ball information.
+        get_opponent_goal() -> Goal: Get the opponent's goal.
+        get_player(side: TeamSide, number: int) -> Player: Get a player by side and number.
+        make_order_move_max_speed(origin: Point, target: Point) -> Order: Create a move order with maximum speed.
+        make_order_move(origin: Point, target: Point, speed: int) -> Order: Create a move order with a specific speed.
+        make_order_move_from_vector(direction: Vector, speed: int) -> Order: Create a move order from a direction vector.
+        make_order_move_by_direction(direction: DIRECTION) -> Order: Create a move order by specifying a direction.
+        make_order_jump(origin: Point, target: Point, speed: int) -> Order: Create a jump order with a specific speed.
+        make_order_kick(ball: Ball, target: Point, speed: int) -> Order: Create a kick order with a specific speed.
+        make_order_kick_max_speed(ball: Ball, target: Point) -> Order: Create a kick order with maximum speed.
+        make_order_catch() -> Order: Create a catch order.
+
+    """
     def __init__(self, snapshot: lugo.GameSnapshot, my_side: lugo.TeamSide):
         self.snapshot = snapshot
         self.my_side = my_side
