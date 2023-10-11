@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 # both src are necessary to account for execution on docker and on project folder
 sys.path.append("../..")
 import src.lugo4py as  lugo4py
-import src.lugo4py.mapper as  mapper
+import src.lugo4py.mapper as mapper
 
 
 from my_bot import MyBot

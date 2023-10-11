@@ -9,9 +9,8 @@ from . import lugo
 from ..protos import server_pb2
 from ..protos import server_pb2_grpc as server_grpc
 
-from .interface import Bot, PLAYER_STATE
+from .interface import Bot, PLAYER_STATE, define_state
 from .loader import EnvVarLoader
-from .snapshot import define_state
 import threading
 
 PROTOCOL_VERSION = "1.0.0"

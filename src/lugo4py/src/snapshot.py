@@ -1,4 +1,4 @@
-from . import lugo, geo, interface, specs
+from . import lugo, geo, specs
 from ..mapper import DIRECTION, ORIENTATION, homeGoal, awayGoal
 from .goal import Goal
 from ..mapper.src.orientation import NORTH
@@ -167,26 +167,4 @@ class GameSnapshotReader:
 
 
 
-def define_state(snapshot: lugo.GameSnapshot, player_number: int, side: lugo.TeamSide) -> interface.PLAYER_STATE:
-    if not snapshot or not snapshot.ball:
-        raise AttributeError(
-            'invalid snapshot state - cannot define player state')
 
-    reader = GameSnapshotReader(snapshot, side)
-    me = reader.get_player(side, player_number)
-    if me is None:
-        raise AttributeError(
-            'could not find the bot in the snapshot - cannot define player state')
-
-    ball_holder = snapshot.ball.holder
-
-    if ball_holder.number == 0:
-        return interface.PLAYER_STATE.DISPUTING_THE_BALL
-
-    if ball_holder.team_side == side:
-        if ball_holder.number == player_number:
-            return interface.PLAYER_STATE.HOLDING_THE_BALL
-
-        return interface.PLAYER_STATE.SUPPORTING
-
-    return interface.PLAYER_STATE.DEFENDING

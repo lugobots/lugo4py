@@ -37,7 +37,8 @@ class Bot(ABC):
         pass
 
     @abstractmethod
-    def as_goalkeeper(self, order_set: lugo.OrderSet, game_snapshot: lugo.GameSnapshot, state: PLAYER_STATE) -> lugo.OrderSet:
+    def as_goalkeeper(self, order_set: lugo.OrderSet, game_snapshot: lugo.GameSnapshot,
+                      state: PLAYER_STATE) -> lugo.OrderSet:
         pass
 
     @abstractmethod
@@ -51,3 +52,28 @@ class Bot(ABC):
             raise AttributeError("did not find myself in the game")
 
         return reader, me
+
+
+def define_state(game_snapshot: lugo.GameSnapshot, player_number: int, side: lugo.TeamSide) -> PLAYER_STATE:
+    if not game_snapshot or not game_snapshot.ball:
+        raise AttributeError(
+            'invalid snapshot state - cannot define player state')
+
+    reader = snapshot.GameSnapshotReader(game_snapshot, side)
+    me = reader.get_player(side, player_number)
+    if me is None:
+        raise AttributeError(
+            'could not find the bot in the snapshot - cannot define player state')
+
+    ball_holder = game_snapshot.ball.holder
+
+    if ball_holder.number == 0:
+        return PLAYER_STATE.DISPUTING_THE_BALL
+
+    if ball_holder.team_side == side:
+        if ball_holder.number == player_number:
+            return PLAYER_STATE.HOLDING_THE_BALL
+
+        return PLAYER_STATE.SUPPORTING
+
+    return PLAYER_STATE.DEFENDING
