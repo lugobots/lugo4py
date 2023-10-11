@@ -132,8 +132,7 @@ class Bot(ABC):
         Args:
             game_snapshot (GameSnapshot): The current game snapshot.
         """
-
-    pass
+        pass
 
     def make_reader(self, game_snapshot: lugo.GameSnapshot):
         """
