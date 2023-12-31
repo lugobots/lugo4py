@@ -1,6 +1,7 @@
 import traceback
 from abc import ABC
 
+
 import src.lugo4py as lugo4py
 import src.lugo4py.mapper as mapper
 
@@ -13,7 +14,6 @@ class MyBot(lugo4py.Bot, ABC):
 
     def on_disputing(self, order_set: lugo4py.OrderSet, snapshot: lugo4py.GameSnapshot) -> lugo4py.OrderSet:
         try:
-
             # the Lugo.GameSnapshot helps us to read the game state
             (reader, me) = self.make_reader(snapshot)
             ball_position = reader.get_ball().position
@@ -30,7 +30,7 @@ class MyBot(lugo4py.Bot, ABC):
                 move_destination = ball_position
                 order_set.debug_message = "Disputing: Trying to catch the ball"
 
-            move_order = reader.make_order_move_max_speed(me.position, move_destination)
+            move_order = reader.make_order_move_by_direction(lugo4py.DIRECTION_FORWARD)
 
             # we can ALWAYS try to catch the ball
             catch_order = reader.make_order_catch()

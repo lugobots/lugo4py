@@ -20,27 +20,80 @@ from ..protos import physics_pb2
 
 
 class Vector:
+    """
+    Represents a two-dimensional vector in a game.
+
+    Attributes:
+        x (float): The x-component of the vector.
+        y (float): The y-component of the vector.
+
+    Methods:
+        None
+
+    Usage:
+    vector = Vector(x, y)
+    """
     def __init__(self, x=0.0, y=0.0):
         self.x = x
         self.y = y
 
 
 class Point:
+    """
+    Represents a point with two-dimensional coordinates in a game.
+
+    Attributes:
+        x (int): The x-coordinate of the point.
+        y (int): The y-coordinate of the point.
+
+    Methods:
+        None
+
+    Usage:
+    point = Point(x, y)
+    """
     def __init__(self, x=0, y=0):
         self.x = x
         self.y = y
 
 
 class Velocity:
+    """
+    Represents the velocity of an object in a game.
+
+    Attributes:
+        direction (Vector): The direction of the velocity.
+        speed (float): The speed or magnitude of the velocity.
+
+    Methods:
+        None
+
+    """
     def __init__(self, direction=None, speed=0.0):
         self.direction = direction if direction is not None else Vector()
         self.speed = speed
 
 
-def new_velocity(point: Point) -> Velocity:
+def new_velocity(vector: Vector) -> Velocity:
+    """
+    Create a new Velocity object based on a Vector.
+
+    This function takes a Vector object and creates a new Velocity object by setting its direction
+    components based on the x and y components from the provided Vector.
+
+    Args:
+        vector (Vector): A Vector object representing the direction components.
+
+    Returns:
+        Velocity: A new Velocity object with the direction components set from the Vector.
+
+    Example:
+    vector = Vector(1.0, 0.0)
+    velocity = new_velocity(vector)
+    """
     v = physics_pb2.Velocity()
-    v.direction.x = point.x
-    v.direction.y = point.y
+    v.direction.x = vector.x
+    v.direction.y = vector.y
     return v
 
 
@@ -100,6 +153,18 @@ class NextOrderRequest(object):
 
 
 class BallProperties:
+    """
+    Represents the properties and state of a ball in a game.
+
+    Attributes:
+        position (Point): The current position of the ball.
+        velocity (Velocity): The velocity of the ball.
+        holder: The current holder of the ball (if any).
+
+    Methods:
+        None
+
+    """
     def __init__(self, position=None, velocity=None, holder=None):
         self.position = position if position is not None else Point()
         self.velocity = velocity if velocity is not None else Velocity()
@@ -107,6 +172,19 @@ class BallProperties:
 
 
 class PlayerProperties:
+    """
+    Represents the properties and state of a player in a game.
+
+    Attributes:
+        side: The side to which the player belongs.
+        number (int): The player's unique number per team.
+        position (Point): The current position of the player.
+        velocity (Velocity): The player's velocity.
+
+    Methods:
+        None
+
+    """
     def __init__(self, side=None, number=0, position=None, velocity=None):
         self.side = side
         self.number = number
@@ -155,6 +233,17 @@ class TeamSide(IntEnum):
 
 
 class State(IntEnum):
+    """
+    Represents what state the game is.
+    The bots will play when the game is on the LISTENING state
+
+    WAITING		The game is waiting for all players be connected. There is a configurable time limit to wait for players. After this limit expires, the match is considered over.
+    GET_READY	The game resets the players position to start the match or to restart the match after a goal.
+    LISTENING	The game is waiting for players orders. There is a configurable time window for this phase. After the time limit expires, the server will ignore the missing orders and process the ones it got. (when running on dev mode, the server may allow different behaviours)
+    PLAYING	    The game is executing the players' orders in the same sequence they were gotten. If the ball is NOT been holden, its velocity will be processed first. Otherwise, it position will be updated when the ball holder movement be processed. If there is no movement orders from a player, but it has speed greater than 0, it will be processed after all its orders are processed. Each player orders will be processed in the same sequence they were included in the message (e.g. first move, than kick) The ball kick is processed immediately after the order (the ball position is updated as its new velocity after the kick)
+    SHIFTING	The game interrupt the match to shift the ball possession. It happens only when the shot time is over (see shot_clock property). The ball will be given to the goalkeeper of the defense team, and the next state will "listening", so the bots will not have time to rearrange before the next turn.
+    OVER		The game may be over after any phase. It can be over after Waiting if there is no players connected after the time limit for connections It can be over after GetReady or Listening if there is no enough players (e.g. connection lost) And it also can be over after Playing state if that was the last turn of the match.
+    """
     WAITING = 0
     GET_READY = 1
     LISTENING = 2
@@ -172,6 +261,20 @@ class StatusCode(IntEnum):
 
 
 class Player:
+    """
+    Represents a player in a game, including their properties and state.
+
+    Attributes:
+        number (int): The player's unique number per team.
+        position (Point): The current position of the player.
+        velocity (Velocity): The player's velocity.
+        team_side (TeamSide): The side to which the player belongs.
+        init_position (Point): The initial position of the player.
+
+    Methods:
+        None
+
+    """
     def __init__(self, number: int, position: Point, velocity: Velocity, team_side: TeamSide, init_position: Point):
         self.number = number
 
@@ -187,6 +290,18 @@ class Player:
 
 
 class Team:
+    """
+    Represents a team in a game, including its players, score, and side.
+
+    Attributes:
+        players (List[Player]): A list of Player objects representing the team's players.
+        score (int): The team's current score.
+        side (TeamSide): The side to which the team belongs.
+
+    Methods:
+        None
+
+    """
     def __init__(self, players: List[Player], name: str, score: int, side: TeamSide):
         self.players = players
         self.name = name
@@ -195,6 +310,17 @@ class Team:
 
 
 class Ball:
+    """
+    Represents a ball in a game, including its position, velocity, and the player currently holding it.
+
+    Attributes:
+        position (Point): The current position of the ball.
+        velocity (Velocity): The velocity of the ball.
+        holder (Player): The player currently holding the ball.
+
+    Methods:
+        None
+    """
     def __init__(self, position: Point, velocity: Velocity, holder: Player):
         self.position = position
         self.velocity = velocity
@@ -202,6 +328,19 @@ class Ball:
 
 
 class ShotClock:
+    """
+    Represents a shot clock in a game, indicating the remaining turns for a specific team.
+
+    Attributes:
+        team_side (TeamSide): The side of the team associated with this shot clock.
+        remaining_turns (int): The number of remaining turns for the shot clock.
+
+    Methods:
+        None
+
+    Usage:
+    shot_clock = ShotClock(team_side, remaining_turns)
+    """
     def __init__(self, team_side: TeamSide, remaining_turns: int):
         self.team_side = team_side
         self.remaining_turns = remaining_turns
@@ -217,6 +356,23 @@ class JoinRequest:
 
 
 class GameSnapshot:
+    """
+    Represents a snapshot of a game's current state at a specific moment.
+    Brings all elements on the field: players and ball, and their speed, direction and position
+    Brings the teams' scores, game turn, and shot clock
+
+    Attributes:
+        state (State): The current state of the game.
+        turn (int): The current turn or game phase.
+        home_team (Team): The team representing the home side.
+        away_team (Team): The team representing the away side.
+        ball (Ball): The ball element.
+        turns_ball_in_goal_zone (int): The number of turns the ball has spent in the goal zone.
+        shot_clock (ShotClock): The game's shot clock, which limits the time a team has possession of the ball.
+
+    Methods:
+        None
+    """
     def __init__(self, state: State, turn: int, home_team: Team, away_team: Team, ball: Ball,
                  turns_ball_in_goal_zone: int, shot_clock: ShotClock):
         self.state = state
@@ -229,12 +385,26 @@ class GameSnapshot:
 
 
 class Order:
+    """
+    Represents a player order to the game server during the listening
+
+    """
     pass
 
 
 class Move(Order):
+    """
+    Represents a move order, which includes a specific velocity for an object.
+
+    Attributes:
+        velocity (Velocity): The velocity associated with the move order.
+
+    Methods:
+        None
+    """
     def __init__(self, velocity: Velocity):
         self.velocity = velocity
+
 
 
 class Catch(Order):
@@ -252,6 +422,18 @@ class Jump(Order):
 
 
 class OrderSet:
+    """
+    Represents a set of orders for a specific game turn, including a turn number, a list of orders, and a debug message.
+
+    Attributes:
+        turn (int): The game turn number associated with this set of orders.
+        orders (List[Order]): A list of Order objects representing the orders for this turn.
+        debug_message (str): A debug message or information related to the order set.
+
+    Methods:
+        None
+
+    """
     def __init__(self, turn: int, orders: List[Order], debug_message: str):
         self.turn = turn
         self.orders = orders
