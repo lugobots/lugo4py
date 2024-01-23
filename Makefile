@@ -6,3 +6,6 @@ generate:
 	find src/protos/ -type f -name "*.py" -print0 | xargs -0 sed -i '' -E 's,import remote_pb2,from . import remote_pb2, g'
 	find src/protos/ -type f -name "*.py" -print0 | xargs -0 sed -i '' -E 's,import health_pb2,from . import health_pb2, g'
 
+test-simple:
+	docker build -t pybot -f ./example/simple/Dockerfile . && docker compose -f ./example/simple/docker-compose.yml up
+
