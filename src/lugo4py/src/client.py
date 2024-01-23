@@ -3,19 +3,23 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 import traceback
 from typing import Callable, Iterator
+from typing import List
+
+from .game_snapshot_inspector import GameSnapshotInspector
 
 from . import lugo
 
 from ..protos import server_pb2
 from ..protos import server_pb2_grpc as server_grpc
 
-from .interface import Bot, PLAYER_STATE, define_state
+from .interface import Bot
+from .define_state import PLAYER_STATE, define_state
 from .loader import EnvVarLoader
 import threading
 
 PROTOCOL_VERSION = "1.0.0"
 
-RawTurnProcessor = Callable[[lugo.OrderSet, lugo.GameSnapshot], lugo.OrderSet]
+RawTurnProcessor = Callable[[GameSnapshotInspector], List[server_pb2.Order]]
 
 
 # reference https://chromium.googlesource.com/external/github.com/grpc/grpc/+/master/examples/python/async_streaming/client.py
@@ -24,7 +28,7 @@ class LugoClient(server_grpc.GameServicer):
     def __init__(self, server_add, grpc_insecure, token, teamSide, number, init_position):
         self._client = None
         self.getting_ready_handler = lambda snapshot: None
-        self.callback = Callable[[lugo.GameSnapshot], lugo.OrderSet]
+        self.callback = RawTurnProcessor
         self.serverAdd = server_add + "?t=" + str(teamSide) + "-" + str(number)
         self.grpc_insecure = grpc_insecure
         self.token = token
@@ -43,7 +47,7 @@ class LugoClient(server_grpc.GameServicer):
     def set_initial_position(self, initial_position: lugo.Point):
         self.init_position = initial_position
 
-    def getting_ready_handler(self, snapshot: lugo.GameSnapshot):
+    def getting_ready_handler(self, inspector: GameSnapshotInspector):
         print(f'Default getting ready handler called for ')
 
     def set_ready_handler(self, new_ready_handler):
@@ -59,21 +63,20 @@ class LugoClient(server_grpc.GameServicer):
         self.set_ready_handler(bot.getting_ready)
         log_with_time(f"{self.get_name()} Playing as bot")
 
-        def processor(orders: lugo.OrderSet, snapshot: lugo.GameSnapshot) -> lugo.OrderSet:
+        def processor(inspector: GameSnapshotInspector)  -> List[lugo.Order]:
             player_state = define_state(
-                snapshot, self.number, self.teamSide)
+                inspector, self.number, self.teamSide)
             if self.number == 1:
-                orders = bot.as_goalkeeper(
-                    orders, snapshot, player_state)
+                orders = bot.as_goalkeeper(inspector, player_state)
             else:
                 if player_state == PLAYER_STATE.DISPUTING_THE_BALL:
-                    orders = bot.on_disputing(orders, snapshot)
+                    orders = bot.on_disputing(inspector)
                 elif player_state == PLAYER_STATE.DEFENDING:
-                    orders = bot.on_defending(orders, snapshot)
+                    orders = bot.on_defending(inspector)
                 elif player_state == PLAYER_STATE.SUPPORTING:
-                    orders = bot.on_supporting(orders, snapshot)
+                    orders = bot.on_supporting(inspector)
                 elif player_state == PLAYER_STATE.HOLDING_THE_BALL:
-                    orders = bot.on_holding(orders, snapshot)
+                    orders = bot.on_holding(inspector)
             return orders
 
         return self._bot_start(executor, processor, on_join)
@@ -124,6 +127,7 @@ class LugoClient(server_grpc.GameServicer):
             processor: RawTurnProcessor) -> None:
         try:
             for snapshot in response_iterator:
+                inspector =  GameSnapshotInspector(self.teamSide, self.number, snapshot)
                 if snapshot.state == lugo.State.OVER:
                     log_with_time(
                         f"{self.get_name()} All done! {lugo.State.OVER}")
@@ -131,16 +135,18 @@ class LugoClient(server_grpc.GameServicer):
                 elif self._play_finished.is_set():
                     break
                 elif snapshot.state == lugo.State.LISTENING:
-                    orders = server_pb2.OrderSet()
-                    orders.turn = snapshot.turn
+                    orders : List[server_pb2.Order] = []
                     try:
-                        orders = processor(orders, snapshot)
+                        orders = processor(inspector)
                     except Exception as e:
                         traceback.print_exc()
                         log_with_time(f"{self.get_name()}bot processor error: {e}")
 
-                    if orders:
-                        self._client.SendOrders(orders)
+                    if orders and len(orders) > 0:
+                        order_set = server_pb2.OrderSet()
+                        order_set.turn = inspector.get_turn()
+                        order_set.orders.extend(orders)
+                        self._client.SendOrders(order_set)
                     else:
                         log_with_time(
                             f"{self.get_name()} [turn #{snapshot.turn}] bot {self.teamSide}-{self.number} did not return orders")

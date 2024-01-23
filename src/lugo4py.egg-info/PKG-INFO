@@ -12,9 +12,9 @@ License-File: LICENSE.txt
 
 # Lugo4Py - A Lugo Bots Client
 
-Lugo4Py is a Python implementation of a client player for [Lugo](https://lugobots.dev/) game. 
+Lugo4Py is a Python implementation of a client player for [Lugo](https://lugobots.dev/) game.
 
-It **is not a bot** that plays the game, it is only the client to connect to the game server. 
+It **is not a bot** that plays the game, it is only the client to connect to the game server.
 
 This package implements many methods that does not affect the player intelligence/behaviour/decisions. It is meant to
 reduce the developer concerns on communication, protocols, attributes, etc.
@@ -34,8 +34,8 @@ your strategy (see the project [exampe](./example/simple) folder).
     + [The Mapper](#the-mapper)
     + [The Region](#the-region)
 
-### requirements 
-    
+### requirements
+
     pip~=23.1.2
 
 ### Installation
@@ -106,7 +106,7 @@ See example and documentation at [RL lib readme file](src/lugo4py/rl/src/README.
 
 ## Kick-start
 
-**Ee encourage you to clone 
+**Ee encourage you to clone
 [The Dummies Py](https://github.com/lugobots/the-dummies-py)** project and start from there. The read me file will have all
 details you need.
 
@@ -148,12 +148,12 @@ And you may define how many columns/rows your field will be divided into.
 
 ```python
 
-# let's create a map 10x5 
+# let's create a map 10x5
 map = lugo4py.Mapper(10, 5, config.get_bot_team_side())
 
 targetRegion = map.get_region(5, 2)
 
-my_region = mapper.get_region_from_point(me.position) 
+my_region = mapper.get_region_from_point(me.position)
 ```
 
 #### The Region
@@ -172,7 +172,7 @@ region_in_right_of_me = target_region.right()
 my_col = target_region.get_col()
 my_row = target_region.get_row()
 
-moveOrder, err_ := reader.makeOrderMoveMaxSpeed(position, region_in_front_of_me.center)
+moveOrder, err_ := reader.make_order_move_max_speed(position, region_in_front_of_me.center)
 ```
 
 ### Snapshot reader
