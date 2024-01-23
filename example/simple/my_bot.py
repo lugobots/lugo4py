@@ -1,7 +1,7 @@
 import traceback
 from abc import ABC
 
-
+from typing import List
 import src.lugo4py as lugo4py
 import src.lugo4py.mapper as mapper
 
@@ -12,129 +12,134 @@ class MyBot(lugo4py.Bot, ABC):
         return abs(region_origin.get_row() - dest_origin.get_row()) <= max_distance and abs(
             region_origin.get_col() - dest_origin.get_col()) <= max_distance
 
-    def on_disputing(self, order_set: lugo4py.OrderSet, snapshot: lugo4py.GameSnapshot) -> lugo4py.OrderSet:
+    def on_disputing(self, inspector: lugo4py.GameSnapshotInspector) -> List[lugo4py.Order]:
         try:
             # the Lugo.GameSnapshot helps us to read the game state
-            (reader, me) = self.make_reader(snapshot)
-            ball_position = reader.get_ball().position
+            orders: List[lugo4py.Order] = []
+            me = inspector.get_me()
+            ball_position = inspector.get_ball().position
 
             ball_region = self.mapper.get_region_from_point(ball_position)
             my_region = self.mapper.get_region_from_point(me.position)
 
-            # by default, let's stay on our region  
-            move_destination = get_my_expected_position(reader, self.mapper, self.number)
-            order_set.debug_message = "Disputing: Returning to my position"
-
             # but if the ball is near to me, I will try to catch it
             if self.is_near(ball_region, my_region):
-                move_destination = ball_position
-                order_set.debug_message = "Disputing: Trying to catch the ball"
-
-            move_order = reader.make_order_move_by_direction(lugo4py.DIRECTION_FORWARD)
+                orders.append(inspector.make_order_move_max_speed(ball_position));
+                # order_set.debug_message = "Disputing: Trying to catch the ball"
 
             # we can ALWAYS try to catch the ball
-            catch_order = reader.make_order_catch()
+            catch_order = inspector.make_order_catch()
+            orders.append(catch_order)
 
-            order_set.turn = snapshot.turn
-            order_set.orders.extend([move_order, catch_order])
-
-            return order_set
+            return orders
 
         except Exception as e:
             print(f'did not play this turn due to exception {e}')
             traceback.print_exc()
 
-    def on_defending(self, order_set: lugo4py.OrderSet, snapshot: lugo4py.GameSnapshot) -> lugo4py.OrderSet:
+    def on_defending(self, inspector: lugo4py.GameSnapshotInspector) -> List[lugo4py.Order]:
         try:
-            (reader, me) = self.make_reader(snapshot)
-            ball_position = snapshot.ball.position
+            orders: List[lugo4py.Order] = []
+            me = inspector.get_me().position
+            ball_position = inspector.get_ball().position
             ball_region = self.mapper.get_region_from_point(ball_position)
             my_region = self.mapper.get_region_from_point(self.initPosition)
 
             # by default, I will stay at my tactic position
-            move_dest = get_my_expected_position(reader, self.mapper, self.number)
-            order_set.debug_message = "Defending: returning to my position"
+            move_dest = get_my_expected_position(inspector, self.mapper, self.number)
+            # order_set.debug_message = "Defending: returning to my position"
 
             if self.is_near(ball_region, my_region):
                 move_dest = ball_position
-                order_set.debug_message = "Defending: trying to catch the ball"
+                # order_set.debug_message = "Defending: trying to catch the ball"
 
-            move_order = reader.make_order_move_max_speed(me.position, move_dest)
-            catch_order = reader.make_order_catch()
+            if move_dest.x == me.x and move_dest.y == me.y:
+                orders.extend([inspector.make_order_catch()])
+                return orders
 
-            order_set.turn = snapshot.turn
-            order_set.orders.extend([move_order, catch_order])
-            return order_set
+            move_order = inspector.make_order_move_max_speed(move_dest)
+            catch_order = inspector.make_order_catch()
+
+            orders.extend([move_order, catch_order])
+            return orders
         except Exception as e:
             print(f'did not play this turn due to exception {e}')
             traceback.print_exc()
 
-    def on_holding(self, order_set: lugo4py.OrderSet, snapshot: lugo4py.GameSnapshot) -> lugo4py.OrderSet:
+    def on_holding(self, inspector: lugo4py.GameSnapshotInspector) -> List[lugo4py.Order]:
         try:
-            (reader, me) = self.make_reader(snapshot)
+            orders: List[lugo4py.Order] = []
+            me = inspector.get_me()
 
-            my_goal_center = self.mapper.get_region_from_point(reader.get_opponent_goal().get_center())
+            my_goal_center = self.mapper.get_region_from_point(inspector.get_opponent_goal().get_center())
             current_region = self.mapper.get_region_from_point(me.position)
 
             if self.is_near(current_region, my_goal_center):
-                my_order = reader.make_order_kick_max_speed(snapshot.ball, reader.get_opponent_goal().get_center())
+                my_order = inspector.make_order_kick_max_speed(inspector.get_opponent_goal().get_center())
             else:
-                my_order = reader.make_order_move_max_speed(me.position, reader.get_opponent_goal().get_center())
+                my_order = inspector.make_order_move_max_speed(inspector.get_opponent_goal().get_center())
 
-            order_set.turn = snapshot.turn
-            order_set.debug_message = "attack!"
-            order_set.orders.append(my_order)
-            return order_set
+            orders.append(my_order)
+            return orders
 
         except Exception as e:
             print(f'did not play this turn due to exception {e}')
             traceback.print_exc()
 
-    def on_supporting(self, order_set: lugo4py.OrderSet, snapshot: lugo4py.GameSnapshot) -> lugo4py.OrderSet:
+    def on_supporting(self, inspector: lugo4py.GameSnapshotInspector) -> List[lugo4py.Order]:
         try:
-            (reader, me) = self.make_reader(snapshot)
-            ball_holder_position = snapshot.ball.position
+            orders: List[lugo4py.Order] = []
+            me = inspector.get_me().position
+            ball_holder_position = inspector.get_ball().position
             ball_holder_region = self.mapper.get_region_from_point(ball_holder_position)
             my_region = self.mapper.get_region_from_point(self.initPosition)
 
-            move_dest = get_my_expected_position(reader, self.mapper, self.number)
+
+            move_dest = get_my_expected_position(inspector, self.mapper, self.number)
 
             if self.is_near(ball_holder_region, my_region):
                 move_dest = ball_holder_position
 
-            move_order = reader.make_order_move_max_speed(me.position, move_dest)
+            if move_dest.x == me.x and move_dest.y == me.y:
+                orders.extend([inspector.make_order_catch()])
+                return orders
 
-            order_set.turn = snapshot.turn
-            order_set.debug_message = "supporting"
-            order_set.orders.append(move_order)
-            return order_set
+            move_order = inspector.make_order_move_max_speed(move_dest)
+
+            orders.append(move_order)
+            return orders
 
         except Exception as e:
             print(f'did not play this turn due to exception {e}')
             traceback.print_exc()
 
-    def as_goalkeeper(self, order_set: lugo4py.OrderSet, snapshot: lugo4py.GameSnapshot, state: lugo4py.PLAYER_STATE) -> lugo4py.OrderSet:
+    def as_goalkeeper(self, inspector: lugo4py.GameSnapshotInspector, state: lugo4py.PLAYER_STATE) -> List[lugo4py.Order]:
         try:
-            (reader, me) = self.make_reader(snapshot)
-            position = snapshot.ball.position
+            me = inspector.get_me().position
+            orders: List[lugo4py.Order] = []
+            position = inspector.get_ball().position
             if state != lugo4py.PLAYER_STATE.DISPUTING_THE_BALL:
-                position = reader.get_my_goal().get_center()
+                position = inspector.get_my_goal().get_center()
 
-            my_order = reader.make_order_move_max_speed(me.position, position)
 
-            order_set.turn = snapshot.turn
-            order_set.debug_message = "defending the goal"
-            order_set.orders.extend([my_order, reader.make_order_catch()])
-            return order_set
+            if position.x == me.x and position.y == me.y:
+                orders.extend([inspector.make_order_catch()])
+                return orders
+
+
+            my_order = inspector.make_order_move_max_speed(position)
+
+            orders.extend([my_order, inspector.make_order_catch()])
+            return orders
 
         except Exception as e:
             print(f'did not play this turn due to exception {e}')
             traceback.print_exc()
 
-    def getting_ready(self, snapshot: lugo4py.GameSnapshot):
+    def getting_ready(self, inspector: lugo4py.GameSnapshotInspector):
         print('getting ready')
 
-def get_my_expected_position(reader: lugo4py.GameSnapshotReader, my_mapper: mapper.Mapper, number: int):
+def get_my_expected_position(inspector: lugo4py.GameSnapshotInspector, my_mapper: mapper.Mapper, number: int):
     mapper_cols = 10
 
     player_tactic_positions = {
@@ -176,7 +181,7 @@ def get_my_expected_position(reader: lugo4py.GameSnapshotReader, my_mapper: mapp
         }
     }
 
-    ball_region = my_mapper.get_region_from_point(reader.get_ball().position)
+    ball_region = my_mapper.get_region_from_point(inspector.get_ball().position)
     field_third = mapper_cols / 3
     ball_cols = ball_region.get_col()
 
