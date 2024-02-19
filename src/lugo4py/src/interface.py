@@ -1,29 +1,10 @@
-from ..src import lugo, snapshot
+from src.lugo4py.protos.server_pb2 import Order
+from .game_snapshot_inspector import GameSnapshotInspector
+from .define_state import PLAYER_STATE
+from . import lugo
 from ..mapper import Mapper
 from abc import ABC, abstractmethod
-from typing import Tuple
-
-class PlayerState(object):
-    """
-     Represents various states that a player can be in during a game.
-
-     Attributes:
-         SUPPORTING (int): The player does not hold the ball, but the holder is a teammate
-         HOLDING_THE_BALL (int): The player is holding the ball.
-         DEFENDING (int): The ball holder is an opponent player
-         DISPUTING_THE_BALL (int): No one is holding the ball
-
-     Methods:
-         None
-     """
-    SUPPORTING = 0
-    HOLDING_THE_BALL = 1
-    DEFENDING = 2
-    DISPUTING_THE_BALL = 3
-
-
-PLAYER_STATE = PlayerState()
-
+from typing import List
 
 class Bot(ABC):
     """
@@ -53,7 +34,7 @@ class Bot(ABC):
         self.initPosition = init_position
 
     @abstractmethod
-    def on_disputing(self, order_set: lugo.OrderSet, game_snapshot: lugo.GameSnapshot) -> lugo.OrderSet:
+    def on_disputing(self, inspector: GameSnapshotInspector) -> List[Order]:
         """
         Method called when the player is on DISPUTING_THE_BALL state.
 
@@ -67,7 +48,7 @@ class Bot(ABC):
         pass
 
     @abstractmethod
-    def on_defending(self, order_set: lugo.OrderSet, game_snapshot: lugo.GameSnapshot) -> lugo.OrderSet:
+    def on_defending(self, inspector: GameSnapshotInspector) -> List[Order]:
         """
         Method called when the player is on DEFENDING state
 
@@ -81,7 +62,7 @@ class Bot(ABC):
         pass
 
     @abstractmethod
-    def on_holding(self, order_set: lugo.OrderSet, game_snapshot: lugo.GameSnapshot) -> lugo.OrderSet:
+    def on_holding(self, inspector: GameSnapshotInspector) -> List[Order]:
         """
         Method called when the player is on HOLDING_THE_BALL state
 
@@ -95,7 +76,7 @@ class Bot(ABC):
         pass
 
     @abstractmethod
-    def on_supporting(self, order_set: lugo.OrderSet, game_snapshot: lugo.GameSnapshot) -> lugo.OrderSet:
+    def on_supporting(self, inspector: GameSnapshotInspector) -> List[Order]:
         """
         Method called when the player is on SUPPORTING state
 
@@ -109,8 +90,7 @@ class Bot(ABC):
         pass
 
     @abstractmethod
-    def as_goalkeeper(self, order_set: lugo.OrderSet, game_snapshot: lugo.GameSnapshot,
-                      state: PLAYER_STATE) -> lugo.OrderSet:
+    def as_goalkeeper(self, inspector: GameSnapshotInspector, state: PLAYER_STATE) -> List[Order]:
         """
         Method is called on every turn, and the player state is passed at the last parameter.
 
@@ -125,7 +105,7 @@ class Bot(ABC):
         pass
 
     @abstractmethod
-    def getting_ready(self, game_snapshot: lugo.GameSnapshot):
+    def getting_ready(self, inspector: GameSnapshotInspector):
         """
         Method called before the game starts and right after the score is changed
 
@@ -134,48 +114,26 @@ class Bot(ABC):
         """
         pass
 
-    def make_reader(self, game_snapshot: lugo.GameSnapshot) -> Tuple[snapshot.GameSnapshotReader, lugo.Player]:
-        """
-        Create a game snapshot reader for the bot's side and retrieve the bot's player information.
+    # def make_reader(self, game_snapshot: lugo.GameSnapshot) -> Tuple[snapshot.GameSnapshotReader, lugo.Player]:
+    #     """
+    #     Create a game snapshot reader for the bot's side and retrieve the bot's player information.
 
-        Args:
-            game_snapshot (GameSnapshot): The current game snapshot.
+    #     Args:
+    #         game_snapshot (GameSnapshot): The current game snapshot.
 
-        Returns:
-            snapshot.GameSnapshotReader: The game snapshot reader for the bot's side.
-            Player: The bot's player information.
+    #     Returns:
+    #         snapshot.GameSnapshotReader: The game snapshot reader for the bot's side.
+    #         Player: The bot's player information.
 
-        Raises:
-            AttributeError: If the bot is not found in the game snapshot.
-        """
-        reader = snapshot.GameSnapshotReader(game_snapshot, self.side)
-        me = reader.get_player(self.side, self.number)
-        if me is None:
-            raise AttributeError("did not find myself in the game")
+    #     Raises:
+    #         AttributeError: If the bot is not found in the game snapshot.
+    #     """
+    #     reader = snapshot.GameSnapshotReader(game_snapshot, self.side)
+    #     me = reader.get_player(self.side, self.number)
+    #     if me is None:
+    #         raise AttributeError("did not find myself in the game")
 
-        return reader, me
+    #     return reader, me
 
 
-def define_state(game_snapshot: lugo.GameSnapshot, player_number: int, side: lugo.TeamSide) -> PLAYER_STATE:
-    if not game_snapshot or not game_snapshot.ball:
-        raise AttributeError(
-            'invalid snapshot state - cannot define player state')
 
-    reader = snapshot.GameSnapshotReader(game_snapshot, side)
-    me = reader.get_player(side, player_number)
-    if me is None:
-        raise AttributeError(
-            'could not find the bot in the snapshot - cannot define player state')
-
-    ball_holder = game_snapshot.ball.holder
-
-    if ball_holder.number == 0:
-        return PLAYER_STATE.DISPUTING_THE_BALL
-
-    if ball_holder.team_side == side:
-        if ball_holder.number == player_number:
-            return PLAYER_STATE.HOLDING_THE_BALL
-
-        return PLAYER_STATE.SUPPORTING
-
-    return PLAYER_STATE.DEFENDING

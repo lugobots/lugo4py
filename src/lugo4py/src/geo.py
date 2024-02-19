@@ -151,3 +151,22 @@ def distance_between_points(a: lugo.Point, b: lugo.Point):
     distance = distance_between_points(point1, point2)
     """
     return hypot(a.x - b.x, a.y - b.y)
+
+def new_zeroed_velocity(direction: lugo.Vector):
+    velocity = lugo.Velocity()
+    velocity.direction.x = direction.x
+    velocity.direction.y = direction.y
+    velocity.speed = 0
+    return velocity
+
+def target_from(v: lugo.Vector, point: lugo.Point):
+    target = lugo.Point()
+    target.x = point.x + round(v.x)
+    target.y = point.y + round(v.y)
+    return target
+
+def new_zeroed_point():
+    point = lugo.Point()
+    point.x = 0
+    point.y = 0
+    return point
