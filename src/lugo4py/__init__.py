@@ -6,7 +6,9 @@ from .src.geo import new_vector, sub_vector, is_invalid_vector, get_scaled_vecto
     normalize
 from .src.goal import Goal
 
-from .src.interface import Bot, PLAYER_STATE, PlayerState
+from .src.interface import Bot
+
+from .src.define_state import PLAYER_STATE, PlayerState
 
 from .src.loader import EnvVarLoader
 
@@ -19,7 +21,7 @@ from .src.lugo import Order, OrderSet, Point, Vector, new_velocity, Velocity, Te
     ShotClock, RemoteServicer
 from .mapper import *
 
-from .src.snapshot import GameSnapshotReader
+from .src.game_snapshot_inspector import *
 
 from .src.specs import *
 
