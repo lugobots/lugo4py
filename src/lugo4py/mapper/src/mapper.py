@@ -1,7 +1,8 @@
 from ...protos import physics_pb2
 from ...protos import server_pb2
+from .direction import homeGoal, awayGoal
 
-from ...src import specs
+from ...src import specs, lugo
 
 from math import floor
 
@@ -119,4 +120,8 @@ class Mapper:
         row = min(cy, self.rows - 1)
         return self.get_region(col, row)
 
+    def get_attack_goal(self):
+        return awayGoal if self.my_side == lugo.TeamSide.HOME else homeGoal
 
+    def get_defense_goal(self):
+        return homeGoal if self.my_side == lugo.TeamSide.HOME else awayGoal
