@@ -11,6 +11,10 @@ if __name__ == "__main__":
     def on_join():
         print("I may run it when the bot is connected to the server")
 
+    # starter.set_config(config)
+    # starter.set_initial_position(position)
+    # starter.set_mapper(mapper)
+        
     starter.run(MyBot(
         starter.get_config().get_bot_team_side(),
         starter.get_config().get_bot_number(),
@@ -18,7 +22,6 @@ if __name__ == "__main__":
         starter.get_mapper()
     ), on_join)
 
-    # Set necessary env variables for testing
     # We must load the env vars following the standard defined by the game specs because all bots will receive the
     # arguments in the same format (env vars)
 
