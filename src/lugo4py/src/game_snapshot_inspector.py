@@ -139,9 +139,3 @@ class GameSnapshotInspector:
             return ORIENTATION.SOUTH_EAST if my_side == lugo.TeamSide.HOME else ORIENTATION.NORTH_WEST
         else:
             raise ValueError(f"Unknown direction {direction}")
-
-    def get_opponent_goal(self):
-        return awayGoal if self.my_side == lugo.TeamSide.HOME else homeGoal
-
-    def get_my_goal(self):
-        return homeGoal if self.my_side == lugo.TeamSide.HOME else awayGoal

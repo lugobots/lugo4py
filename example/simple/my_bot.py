@@ -71,13 +71,13 @@ class MyBot(lugo4py.Bot, ABC):
             orders: List[lugo4py.Order] = []
             me = inspector.get_me()
 
-            my_goal_center = self.mapper.get_region_from_point(inspector.get_opponent_goal().get_center())
+            my_goal_center = self.mapper.get_region_from_point(self.mapper.get_attack_goal().get_center())
             current_region = self.mapper.get_region_from_point(me.position)
 
             if self.is_near(current_region, my_goal_center):
-                my_order = inspector.make_order_kick_max_speed(inspector.get_opponent_goal().get_center())
+                my_order = inspector.make_order_kick_max_speed(self.mapper.get_attack_goal().get_center())
             else:
-                my_order = inspector.make_order_move_max_speed(inspector.get_opponent_goal().get_center())
+                my_order = inspector.make_order_move_max_speed(self.mapper.get_attack_goal().get_center())
 
             orders.append(my_order)
             return orders
@@ -119,7 +119,7 @@ class MyBot(lugo4py.Bot, ABC):
             orders: List[lugo4py.Order] = []
             position = inspector.get_ball().position
             if state != lugo4py.PLAYER_STATE.DISPUTING_THE_BALL:
-                position = inspector.get_my_goal().get_center()
+                position = self.mapper.get_defense_goal().get_center()
 
 
             if position.x == me.x and position.y == me.y:
