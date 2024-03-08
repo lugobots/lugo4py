@@ -32,10 +32,12 @@ src/lugo4py/rl/src/remote_control.py
 src/lugo4py/rl/src/training_controller.py
 src/lugo4py/src/__init__.py
 src/lugo4py/src/client.py
+src/lugo4py/src/define_state.py
+src/lugo4py/src/game_snapshot_inspector.py
 src/lugo4py/src/geo.py
 src/lugo4py/src/goal.py
+src/lugo4py/src/helpers.py
 src/lugo4py/src/interface.py
 src/lugo4py/src/loader.py
 src/lugo4py/src/lugo.py
-src/lugo4py/src/snapshot.py
 src/lugo4py/src/specs.py
