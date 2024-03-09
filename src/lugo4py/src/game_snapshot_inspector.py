@@ -1,4 +1,4 @@
-from src.lugo4py.protos import server_pb2
+from ..protos import server_pb2
 from ..mapper import DIRECTION, ORIENTATION, homeGoal, awayGoal
 
 from . import geo, helpers, specs, lugo

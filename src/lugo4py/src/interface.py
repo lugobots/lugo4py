@@ -1,4 +1,4 @@
-from src.lugo4py.protos.server_pb2 import Order
+from ..protos.server_pb2 import Order
 from .game_snapshot_inspector import GameSnapshotInspector
 from .define_state import PLAYER_STATE
 from . import lugo
