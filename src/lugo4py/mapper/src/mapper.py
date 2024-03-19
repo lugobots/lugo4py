@@ -121,7 +121,7 @@ class Mapper:
         return self.get_region(col, row)
 
     def get_attack_goal(self):
-        return awayGoal if self.my_side == lugo.TeamSide.HOME else homeGoal
+        return awayGoal if self.side == lugo.TeamSide.HOME else homeGoal
 
     def get_defense_goal(self):
-        return homeGoal if self.my_side == lugo.TeamSide.HOME else awayGoal
+        return homeGoal if self.side == lugo.TeamSide.HOME else awayGoal
