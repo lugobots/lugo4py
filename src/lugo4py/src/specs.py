@@ -75,13 +75,24 @@ GOAL_MAX_Y = ((max_y_coordinate - goal_width) / 2) + goal_width
 GOAL_ZONE_RANGE = 14 * BASE_UNIT
 
 # GOAL_KEEPER_JUMP_DURATION is the number of turns that the jump takes. A jump cannot be interrupted after has been requested
+# DEPRECATED: use GOALKEEPER_JUMP_DURATION
 GOAL_KEEPER_JUMP_DURATION = 3
 
+# GOALKEEPER_JUMP_DURATION is the number of turns that the jump takes. A jump cannot be interrupted after has been requested
+GOALKEEPER_JUMP_DURATION = 3
+
 # GOAL_KEEPER_JUMP_SPEED is the max speed of the goalkeeper during the jump
+# DEPRECATED: use GOALKEEPER_JUMP_SPEED
 GOAL_KEEPER_JUMP_SPEED = 2 * player_max_speed
+
+# GOALKEEPER_JUMP_SPEED is the max speed of the goalkeeper during the jump
+GOALKEEPER_JUMP_SPEED = 2 * player_max_speed
 
 # GOALKEEPER_NUMBER defines the goalkeeper number
 GOALKEEPER_NUMBER = 1
+
+# GOALKEEPER_SIZE is the width of the goalkeeper
+GOALKEEPER_SIZE = PLAYER_SIZE * 2.3,
 
 # Number of turns each teams has on attack before losing the ball possession.
 SHOT_CLOCK_TIME = 300
