@@ -29,6 +29,9 @@ def normalize(v: lugo.Vector):
     normalized_vector = normalize(vector)
     """
     length = get_length(v)
+
+    if length <= 0:
+        raise RuntimeError("Vector cannot have zero length")
     return get_scaled_vector(v, 100 / length)
 
 
