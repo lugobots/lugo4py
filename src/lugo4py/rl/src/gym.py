@@ -1,50 +1,59 @@
 import contextlib
+import traceback
+from concurrent.futures import ThreadPoolExecutor
+
 import grpc
 import time
-from typing import Any
+from typing import Any, Iterator
 
-from src.lugo4py.protos.remote_pb2_grpc import Remote
+from src.lugo4py.protos.remote_pb2_grpc import Remote, RemoteStub
 from src.lugo4py.protos.rl_assistant_pb2 import RLSessionConfig
-from src.lugo4py.protos.rl_assistant_pb2_grpc import RLAssistant
-from src.lugo4py.rl import TrainingCrl
+from src.lugo4py.protos.rl_assistant_pb2_grpc import RLAssistantStub
+from src.lugo4py.rl.src.training_controller import TrainingCrl
+from src.lugo4py.rl.src.contracts import BotTrainer, TrainingFunction
+from src.lugo4py.src import lugo
+from src.lugo4py.src.client import log_with_time
 
 
 class Gym:
-    def __init__(self, grpc_conn: grpc.Channel):
-        self.grpc_conn = grpc_conn
-        self.logger = lambda msg: print(f'set debugger')
-        self.assistant = RLAssistant(grpc_conn)
-        self.remote = Remote(grpc_conn)
 
-    @classmethod
-    def new_gym(cls, config: "Config", logger: Logger) -> tuple["Gym", Remote]:
-        options = [grpc.insecure_channel(config.grpc_address)]
+    def __init__(self, executor: ThreadPoolExecutor,  grpc_address):
 
-        with contextlib.suppress(Exception):
-            ctx = grpc.insecure_channel(config.grpc_address)
-            grpc_conn = grpc.blocking_channel(ctx)
-            logger.debug("Trying to connect to the server")
-            return cls(grpc_conn, logger), Remote(grpc_conn)
+        channel = grpc.insecure_channel(grpc_address)
 
-        raise ConnectionError("Did not connect to the game server")
+        # Block until channel is ready (or timeout)
+        grpc.channel_ready_future(channel).result(timeout=5)
 
-    def start(self, ctx: Any, trainer: "BotTrainer", training_function: "TrainingFunction") -> None:
-        self.grpc_conn.close()
-        training_ctrl = TrainingCrl(ctx, trainer, self.remote, self.assistant)
+        self.remote = RemoteStub(channel)
+        self.assistant = RLAssistantStub(channel)
+        self.executor = executor
 
-        self.logger.debug("Starting training session")
-        session = self.assistant.StartSession(ctx, RLSessionConfig())
 
-        if session.Context().Err():
-            raise RuntimeError("Could not start a training session")
+    def start(self, trainer: BotTrainer, training_function: TrainingFunction) -> None:
 
-        def keep_alive():
-            while True:
-                try:
-                    session.Recv()
-                except grpc.RpcError as err:
-                    self.logger.error(f"The RL assistant session ended with error: {err}")
-                    return
+        training_ctrl = TrainingCrl(trainer, self.remote, self.assistant)
 
-        self.logger.info("Session started")
+        response_iterator = self.assistant.StartSession(request=RLSessionConfig())
+
+
+        self._training_routine = self.executor.submit(self._response_watcher, response_iterator)
+
+
+        time.sleep(2)
         training_function(training_ctrl)
+
+    def _response_watcher(
+        self,
+        response_iterator: Iterator[lugo.GameSnapshot],
+        ) -> None:
+        try:
+            for snapshot in response_iterator:
+                log_with_time(f"still alive")
+
+            # self._play_finished.set()
+        except grpc.RpcError as e:
+            if grpc.StatusCode.INVALID_ARGUMENT == e.code():
+                log_with_time(f"did not connect to RL session {e.details()}")
+        except Exception as e:
+            log_with_time(f"internal error processing RL session: {e}")
+            traceback.print_exc()

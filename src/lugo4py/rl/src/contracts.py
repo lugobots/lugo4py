@@ -1,6 +1,6 @@
-from typing import Any, Tuple, Protocol
+from typing import Any, Tuple, Protocol, Callable
 
-from src.lugo4py import TeamSide
+from src.lugo4py import TeamSide, Order
 from src.lugo4py.protos.rl_assistant_pb2 import PlayersOrders, TurnOutcome
 from src.lugo4py.protos.server_pb2 import GameSnapshot, Team
 
@@ -32,9 +32,7 @@ class BotTrainer(Protocol):
         """Translates the action chosen by the model to game orders."""
         pass
 
-    def evaluate(
-        self, previous_game_snapshot: GameSnapshot, new_game_snapshot: GameSnapshot, turn_outcome: TurnOutcome
-    ) -> Tuple[float, bool]:
+    def evaluate(self, previous_game_snapshot: GameSnapshot, new_game_snapshot: GameSnapshot, turn_outcome: TurnOutcome) -> Tuple[float, bool]:
         """Compares the previous and new game states to determine the reward and whether the game is done."""
         pass
 
@@ -50,7 +48,7 @@ class PlayersOrdersBuilder(Protocol):
         pass
 
 
-TrainingFunction = Any  # Function type alias for TrainingFunction
+TrainingFunction = Callable[[TrainingController], None]
 
 
 class Config:

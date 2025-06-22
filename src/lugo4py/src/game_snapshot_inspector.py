@@ -86,7 +86,7 @@ class GameSnapshotInspector:
         return self.make_order_move_from_point(self.me.position if self.me else geo.new_zeroed_point(), target_point, speed)
 
     def make_order_move_by_direction(self, direction, speed=None):
-        direction_target = self.get_orientation_by_direction(direction)
+        direction_target = self.get_orientation_by_direction(direction, self.my_side)
         return self.make_order_move_from_vector(direction_target, speed if speed is not None else specs.PLAYER_MAX_SPEED)
 
     def make_order_move_to_stop(self):
@@ -120,7 +120,7 @@ class GameSnapshotInspector:
         order.catch.SetInParent()
         return order
 
-    def get_orientation_by_direction(direction: DIRECTION, my_side: lugo.TeamSide):
+    def get_orientation_by_direction(self, direction: DIRECTION, my_side: lugo.TeamSide):
         if direction == DIRECTION.FORWARD:
             return ORIENTATION.EAST if my_side == lugo.TeamSide.HOME else ORIENTATION.WEST
         elif direction == DIRECTION.BACKWARD:

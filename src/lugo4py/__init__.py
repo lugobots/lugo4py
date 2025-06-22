@@ -29,3 +29,4 @@ from .src.starter import *
 
 from .src.utils.defaults import *
 
+from src.lugo4py.protos.rl_assistant_pb2 import *
