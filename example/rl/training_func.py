@@ -32,7 +32,7 @@ def my_training_function(training_ctrl: TrainingController) -> None:
             scores.append(0)
             training_ctrl.set_environment({"iteration": i})
             for j in range(steps_per_iteration):
-
+                print(f"train_iteration {i}, step {j}")
                 _ = training_ctrl.get_state()
 
                 # The sensors would feed our training model, which would return the next action
