@@ -26,5 +26,5 @@ and set the timer mode to **remote**. Those options will allow your RL environme
    You may watch your bot training session at http://localhost:8080/
 2. **Run the training**
     ```shell
-        python3 main.py
+        PYTHONPATH=$(pwd)/../../src/lugo4py/protos .venv/bin/python3.9 main.py 
     ```
