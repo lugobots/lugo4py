@@ -1,20 +1,14 @@
 import random
-import time
-from typing import Any, List, Optional, Tuple
+from typing import Tuple
 import sys
 
-from src.lugo4py import PlayersOrders, TurnOutcome, GameSnapshotInspector
-from src.lugo4py.mapper.src import mapper
-from src.lugo4py.protos import server_pb2
-from src.lugo4py.protos.physics_pb2 import Point
-from src.lugo4py.protos.remote_pb2 import GameSnapshotRequest, PlayerProperties, CommandResponse
+from src.lugo4py import PlayersOrders, TurnOutcome, GameSnapshotInspector, PlayerOrdersOnRLSession
+from src.lugo4py.protos.remote_pb2 import PlayerProperties
 from src.lugo4py.protos.server_pb2 import Team
 
-from src.lugo4py.rl.src.contracts import BotTrainer
 from src.lugo4py.src.lugo import GameSnapshot
 
 sys.path.append("../..")
-from src.lugo4py.src import client, lugo
 from src.lugo4py.rl import *
 from src.lugo4py.mapper import *
 

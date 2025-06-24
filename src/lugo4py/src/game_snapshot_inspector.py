@@ -90,7 +90,7 @@ class GameSnapshotInspector:
         return self.make_order_move_from_vector(direction_target, speed if speed is not None else specs.PLAYER_MAX_SPEED)
 
     def make_order_move_to_stop(self):
-        my_direction = self.me.get_velocity().get_direction() if self.me and self.me.get_velocity() else self.get_orientation_by_direction(DIRECTION.FORWARD)
+        my_direction = self.me.velocity.direction if self.me and self.me.velocity else self.get_orientation_by_direction(DIRECTION.FORWARD)
         return self.make_order_move_from_vector(my_direction, 0)
 
     def make_order_jump(self, target, speed):
