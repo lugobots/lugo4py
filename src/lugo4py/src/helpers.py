@@ -1,4 +1,5 @@
-from .lugo import GameSnapshot, Player, TeamSide
+from src.lugo4py.protos.server_pb2 import GameSnapshot, Player, Team
+
 
 def get_ball_holder(snapshot: GameSnapshot):
     holder = snapshot.ball.holder
@@ -8,13 +9,13 @@ def is_ball_holder(snapshot: GameSnapshot, player: Player):
     holder = snapshot.ball.holder
     return holder is not None and holder.team_side == player.team_side and holder.number == player.number
 
-def get_team(snapshot: GameSnapshot, side: TeamSide):
-    if side == TeamSide.HOME:
+def get_team(snapshot: GameSnapshot, side: Team.Side):
+    if side == Team.Side.HOME:
         return snapshot.home_team
     else: return snapshot.away_team
 
 
-def get_player(snapshot: GameSnapshot, side: TeamSide, number: int):
+def get_player(snapshot: GameSnapshot, side: Team.Side, number: int):
     team = get_team(snapshot, side)
     if team:
         for current_player in team.players:
@@ -22,7 +23,7 @@ def get_player(snapshot: GameSnapshot, side: TeamSide, number: int):
                 return current_player
     return None
 
-def get_opponent_side(side: TeamSide):
-    return TeamSide.AWAY if side == TeamSide.HOME else TeamSide.HOME
+def get_opponent_side(side: Team.Side):
+    return Team.Side.AWAY if side == Team.Side.HOME else Team.Side.HOME
 
 

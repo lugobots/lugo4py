@@ -12,13 +12,7 @@ from .src.define_state import PLAYER_STATE, PlayerState
 
 from .src.loader import EnvVarLoader
 
-from .src.lugo import Order, OrderSet, Point, Vector, new_velocity, Velocity, Team, TeamSide, \
-    OrderResponse, \
-    CommandResponse, State, Player, PlayerProperties, BallProperties, GameProperties, GameSnapshot, Ball, \
-    ResumeListeningResponse, \
-    ResumeListeningRequest, PauseResumeRequest, JoinRequest, NextOrderRequest, NextTurnRequest, StatusCode, Jump, Kick, \
-    Move, Catch, \
-    ShotClock, RemoteServicer
+from .src.lugo import new_velocity
 from .mapper import *
 
 from .src.game_snapshot_inspector import *
@@ -29,4 +23,11 @@ from .src.starter import *
 
 from .src.utils.defaults import *
 
-from src.lugo4py.protos.rl_assistant_pb2 import *
+from .protos.server_pb2 import *
+from .protos.server_pb2_grpc import *
+from .protos.physics_pb2 import *
+from .protos.physics_pb2_grpc import *
+from .protos.remote_pb2 import *
+from .protos.remote_pb2_grpc import *
+from .protos.broadcast_pb2 import *
+from .protos.broadcast_pb2_grpc import *

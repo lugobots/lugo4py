@@ -1,4 +1,3 @@
-from . import lugo
 from ..protos.physics_pb2 import Point
 from ..protos.server_pb2 import Team
 
@@ -26,7 +25,7 @@ class Goal(object):
     top_pole_point = goal.get_top_pole()
     bottom_pole_point = goal.get_bottom_pole()
     """
-    def __init__(self, place: lugo.TeamSide, center: lugo.Point, top_pole: lugo.Point, bottom_pole: lugo.Point):
+    def __init__(self, place: Team.Side, center: Point, top_pole: Point, bottom_pole: Point):
         self._center = center
         self._place = place
         self._topPole = top_pole

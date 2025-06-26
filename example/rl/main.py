@@ -1,14 +1,10 @@
-import random
 import signal
 import threading
-import traceback
-from concurrent.futures import ThreadPoolExecutor
 import sys
 
 from training_func import my_training_function
+from src.lugo4py.rl import ThreadPoolExecutor, Gym
 
-sys.path.append("../..")
-from src.lugo4py.rl import *
 from example.rl import my_bot
 
 # Training settings

@@ -1,8 +1,8 @@
 from typing import Any, Tuple, Protocol, Callable
 
-from src.lugo4py import TeamSide, Order
+from src.lugo4py import Team, Order
 from src.lugo4py.protos.rl_assistant_pb2 import PlayersOrders, TurnOutcome
-from src.lugo4py.protos.server_pb2 import GameSnapshot, Team
+from src.lugo4py.protos.server_pb2 import GameSnapshot
 
 
 class TrainingController(Protocol):
@@ -38,10 +38,10 @@ class BotTrainer(Protocol):
 
 
 class PlayersOrdersBuilder(Protocol):
-    def add_order(self, player_number, team_side: TeamSide, orders: list[Order]) -> "PlayersOrdersBuilder":
+    def add_order(self, player_number, team_side: Team.Side, orders: list[Order]) -> "PlayersOrdersBuilder":
         pass
 
-    def set_player_behaviour(self, player_number, team_side: TeamSide, behaviour) -> "PlayersOrdersBuilder":
+    def set_player_behaviour(self, player_number, team_side: Team.Side, behaviour) -> "PlayersOrdersBuilder":
         pass
 
     def build(self) -> PlayersOrders:

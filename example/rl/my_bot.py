@@ -1,18 +1,13 @@
 import random
-from typing import Tuple
-import sys
+import time
+from typing import Any, Tuple
 
-from src.lugo4py import PlayersOrders, TurnOutcome, GameSnapshotInspector, PlayerOrdersOnRLSession
-from src.lugo4py.protos.remote_pb2 import PlayerProperties
-from src.lugo4py.protos.server_pb2 import Team
-
-from src.lugo4py.src.lugo import GameSnapshot
-
-sys.path.append("../..")
-from src.lugo4py.rl import *
-from src.lugo4py.mapper import *
+from src.lugo4py import GameSnapshotInspector, Velocity, new_velocity, PlayerProperties, Team
+from src.lugo4py.rl import (BotTrainer, Remote, GameSnapshot, PlayersOrders,
+                            PlayerOrdersOnRLSession, TurnOutcome)
 
 TRAINING_PLAYER_NUMBER = 5
+
 
 class MyBotTrainer(BotTrainer):
     def __init__(self, remote_control: Remote):
@@ -30,10 +25,9 @@ class MyBotTrainer(BotTrainer):
         '''
         player_prop = PlayerProperties()
         player_prop.number = 5
-        player_prop.side = Team.HOME
+        player_prop.side = Team.Side.HOME
         player_prop.position.x = 5000
         player_prop.position.y = 6000
-
         response = self.remote_control.SetPlayerProperties(player_prop)
         return response.game_snapshot
 
@@ -49,11 +43,11 @@ class MyBotTrainer(BotTrainer):
         return [True, True, False]
 
     def play(self, game_snapshot: GameSnapshot, action: Any) -> PlayersOrders:
-        inspector = GameSnapshotInspector(lugo.TeamSide.HOME, 5, game_snapshot)
+        inspector = GameSnapshotInspector(Team.Side.HOME, 5, game_snapshot)
         orders = inspector.make_order_move_by_direction(action)
 
         player_orders = PlayerOrdersOnRLSession(
-            team_side=lugo.TeamSide.HOME,
+            team_side=Team.Side.HOME,
             number=5,
         )
 
@@ -64,7 +58,8 @@ class MyBotTrainer(BotTrainer):
         response.players_orders.append(player_orders)
         return response
 
-    def evaluate(self, previous_game_snapshot: GameSnapshot, new_game_snapshot: GameSnapshot, turn_outcome: TurnOutcome    ) -> Tuple[float, bool]:
+    def evaluate(self, previous_game_snapshot: GameSnapshot, new_game_snapshot: GameSnapshot,
+                 turn_outcome: TurnOutcome) -> Tuple[float, bool]:
         '''
         :param previous_game_snapshot:
         :param new_game_snapshot:
@@ -74,8 +69,8 @@ class MyBotTrainer(BotTrainer):
         return random.random(), new_game_snapshot.turn >= 600
 
 
-def _create_velocity(speed: float, direction) -> lugo.Velocity:
-    velocity = lugo.new_velocity(direction)
+def _create_velocity(speed: float, direction) -> Velocity:
+    velocity = new_velocity(direction)
     velocity.speed = speed
     return velocity
 

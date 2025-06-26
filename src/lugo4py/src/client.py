@@ -7,10 +7,9 @@ from typing import List
 
 from .game_snapshot_inspector import GameSnapshotInspector
 
-from . import lugo
-
-from ..protos import server_pb2
+from ..protos.server_pb2 import GameSnapshot, Order, OrderSet, JoinRequest
 from ..protos import server_pb2_grpc as server_grpc
+from ..protos.physics_pb2 import Point
 
 from .interface import Bot
 from .define_state import PLAYER_STATE, define_state
@@ -19,7 +18,7 @@ import threading
 
 PROTOCOL_VERSION = "1.0.0"
 
-RawTurnProcessor = Callable[[GameSnapshotInspector], List[server_pb2.Order]]
+RawTurnProcessor = Callable[[GameSnapshotInspector], List[Order]]
 
 
 # reference https://chromium.googlesource.com/external/github.com/grpc/grpc/+/master/examples/python/async_streaming/client.py
@@ -44,7 +43,7 @@ class LugoClient(server_grpc.GameServicer):
     def get_name(self):
         return f"{'HOME' if self.teamSide == 0 else 'AWAY'}-{self.number}"
 
-    def set_initial_position(self, initial_position: lugo.Point):
+    def set_initial_position(self, initial_position: Point):
         self.init_position = initial_position
 
     def getting_ready_handler(self, inspector: GameSnapshotInspector):
@@ -53,7 +52,7 @@ class LugoClient(server_grpc.GameServicer):
     def set_ready_handler(self, new_ready_handler):
         self.getting_ready_handler = new_ready_handler
 
-    def play(self, executor: ThreadPoolExecutor, callback: Callable[[lugo.GameSnapshot], lugo.OrderSet],
+    def play(self, executor: ThreadPoolExecutor, callback: Callable[[GameSnapshot], OrderSet],
              on_join: Callable[[], None]) -> threading.Event:
         self.callback = callback
         log_with_time(f"{self.get_name()} Starting to play")
@@ -63,7 +62,7 @@ class LugoClient(server_grpc.GameServicer):
         self.set_ready_handler(bot.getting_ready)
         log_with_time(f"{self.get_name()} Playing as bot")
 
-        def processor(inspector: GameSnapshotInspector)  -> List[lugo.Order]:
+        def processor(inspector: GameSnapshotInspector)  -> List[Order]:
             player_state = define_state(
                 inspector, self.number, self.teamSide)
             if self.number == 1:
@@ -97,7 +96,7 @@ class LugoClient(server_grpc.GameServicer):
         self.channel = channel
         self._client = server_grpc.GameStub(channel)
 
-        join_request = server_pb2.JoinRequest(
+        join_request = JoinRequest(
             token=self.token,
             team_side=self.teamSide,
             number=self.number,
@@ -122,20 +121,20 @@ class LugoClient(server_grpc.GameServicer):
 
     def _response_watcher(
             self,
-            response_iterator: Iterator[lugo.GameSnapshot],
+            response_iterator: Iterator[GameSnapshot],
             # snapshot,
             processor: RawTurnProcessor) -> None:
         try:
             for snapshot in response_iterator:
                 inspector =  GameSnapshotInspector(self.teamSide, self.number, snapshot)
-                if snapshot.state == lugo.State.OVER:
+                if snapshot.state == GameSnapshot.State.OVER:
                     log_with_time(
-                        f"{self.get_name()} All done! {lugo.State.OVER}")
+                        f"{self.get_name()} All done! {GameSnapshot.State.OVER}")
                     break
                 elif self._play_finished.is_set():
                     break
-                elif snapshot.state == lugo.State.LISTENING:
-                    orders : List[server_pb2.Order] = []
+                elif snapshot.state == GameSnapshot.State.LISTENING:
+                    orders : List[Order] = []
                     try:
                         orders = processor(inspector)
                     except Exception as e:
@@ -143,14 +142,14 @@ class LugoClient(server_grpc.GameServicer):
                         log_with_time(f"{self.get_name()}bot processor error: {e}")
 
                     if orders and len(orders) > 0:
-                        order_set = server_pb2.OrderSet()
+                        order_set = OrderSet()
                         order_set.turn = inspector.get_turn()
                         order_set.orders.extend(orders)
                         self._client.SendOrders(order_set)
                     else:
                         log_with_time(
                             f"{self.get_name()} [turn #{snapshot.turn}] bot {self.teamSide}-{self.number} did not return orders")
-                elif snapshot.state == lugo.State.GET_READY:
+                elif snapshot.state == GameSnapshot.State.GET_READY:
                     self.getting_ready_handler(snapshot)
 
             self._play_finished.set()
@@ -162,7 +161,7 @@ class LugoClient(server_grpc.GameServicer):
             traceback.print_exc()
 
 
-def NewClientFromConfig(config: EnvVarLoader, initialPosition: lugo.Point) -> LugoClient:
+def NewClientFromConfig(config: EnvVarLoader, initialPosition: Point) -> LugoClient:
     return LugoClient(
         config.get_grpc_url(),
         config.get_grpc_insecure(),

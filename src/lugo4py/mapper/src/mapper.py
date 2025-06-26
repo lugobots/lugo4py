@@ -2,7 +2,7 @@ from ...protos import physics_pb2
 from ...protos import server_pb2
 from .direction import homeGoal, awayGoal
 
-from ...src import specs, lugo
+from ...src import specs
 
 from math import floor
 
@@ -121,7 +121,7 @@ class Mapper:
         return self.get_region(col, row)
 
     def get_attack_goal(self):
-        return awayGoal if self.side == lugo.TeamSide.HOME else homeGoal
+        return awayGoal if self.side == server_pb2.Team.Side.HOME else homeGoal
 
     def get_defense_goal(self):
-        return homeGoal if self.side == lugo.TeamSide.HOME else awayGoal
+        return homeGoal if self.side == server_pb2.Team.Side.HOME else awayGoal

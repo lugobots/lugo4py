@@ -1,9 +1,9 @@
 from ...mapper import Mapper
 from ..loader import EnvVarLoader
-from .. import lugo
+from ...protos.physics_pb2 import Point
 from typing import Tuple
 
-def DefaultInitBundle() -> Tuple[EnvVarLoader, Mapper, lugo.Point]:
+def DefaultInitBundle() -> Tuple[EnvVarLoader, Mapper, Point]:
     defaultConfig = EnvVarLoader()
 
     defaultMapper = Mapper(10, 6, defaultConfig.get_bot_team_side())
