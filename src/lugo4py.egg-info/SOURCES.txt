@@ -33,6 +33,7 @@ src/lugo4py/protos/server_pb2.pyi
 src/lugo4py/protos/server_pb2_grpc.py
 src/lugo4py/rl/__init__.py
 src/lugo4py/rl/src/__init__.py
+src/lugo4py/rl/src/configuator.py
 src/lugo4py/rl/src/contracts.py
 src/lugo4py/rl/src/gym.py
 src/lugo4py/rl/src/training_controller.py

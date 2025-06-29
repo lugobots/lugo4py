@@ -1,8 +1,8 @@
 from typing import Any, Tuple, Protocol, Callable
 
-from src.lugo4py import Team, Order
-from src.lugo4py.protos.rl_assistant_pb2 import PlayersOrders, TurnOutcome
-from src.lugo4py.protos.server_pb2 import GameSnapshot
+from ... import Team, Order
+from ...protos.rl_assistant_pb2 import PlayersOrders, TurnOutcome
+from ...protos.server_pb2 import GameSnapshot
 
 
 class TrainingController(Protocol):

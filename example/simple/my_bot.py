@@ -30,7 +30,7 @@ class MyBot(lugo4py.Bot, ABC):
             # we can ALWAYS try to catch the ball
             catch_order = inspector.make_order_catch()
             orders.append(catch_order)
-
+            orders.append(inspector.make_order_move_max_speed(ball_position));
             return orders
 
         except Exception as e:

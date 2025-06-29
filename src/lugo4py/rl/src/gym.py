@@ -4,16 +4,17 @@ from concurrent.futures import ThreadPoolExecutor
 
 import grpc
 import time
-from typing import Any, Iterator
+from typing import Any, Iterator, Callable
 
-from src.lugo4py import GameSnapshot
-from src.lugo4py.protos.remote_pb2_grpc import Remote, RemoteStub
-from src.lugo4py.protos.rl_assistant_pb2 import RLSessionConfig
-from src.lugo4py.protos.rl_assistant_pb2_grpc import RLAssistantStub
-from src.lugo4py.rl.src.training_controller import TrainingCrl
-from src.lugo4py.rl.src.contracts import BotTrainer, TrainingFunction
-from src.lugo4py.src.client import log_with_time
+from .configuator import Configurator
+from ... import GameSnapshot, Remote, RemoteStub, log_with_time, Bot, Team, Point, Mapper, TeamSide
+from ...protos.rl_assistant_pb2 import RLSessionConfig
+from ...protos.rl_assistant_pb2_grpc import RLAssistantStub
+from ...rl.src.training_controller import TrainingCrl
+from ...rl.src.contracts import BotTrainer, TrainingFunction
+from ...src.utils.defaults import DEFAULT_PLAYER_POSITIONS, DEFAULT_MAPPER_COLS, DEFAULT_MAPPER_ROWS
 
+Maker = Callable[[Configurator], Bot]
 
 class Gym:
 
@@ -27,11 +28,24 @@ class Gym:
         self.remote = RemoteStub(channel)
         self.assistant = RLAssistantStub(channel)
         self.executor = executor
+        self.my_bots = {}
+
+    def create_team_bots(self, team: TeamSide, factory: Maker):
+        default_mapper = Mapper(DEFAULT_MAPPER_COLS, DEFAULT_MAPPER_ROWS, team)
+
+        for number in range(1, 12):  # Player numbers 1 to 11
+            configurator = Configurator(
+                team,
+                number,
+                default_mapper.get_region(DEFAULT_PLAYER_POSITIONS[number]["Col"], DEFAULT_PLAYER_POSITIONS[number]["Row"]).get_center(),
+                default_mapper
+            )
+            self.my_bots[(team, number)] = factory(configurator)
 
 
-    def start(self, trainer: BotTrainer, training_function: TrainingFunction) -> None:
+    def start(self, trainer: BotTrainer, training_function: TrainingFunction, normal_speed: bool = False) -> None:
 
-        training_ctrl = TrainingCrl(trainer, self.remote, self.assistant)
+        training_ctrl = TrainingCrl(trainer, self.my_bots, self.remote, self.assistant, normal_speed)
 
         response_iterator = self.assistant.StartSession(request=RLSessionConfig())
 

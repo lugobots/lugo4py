@@ -1,4 +1,4 @@
-from src.lugo4py.protos.server_pb2 import GameSnapshot, Player, Team
+from ..protos.server_pb2 import GameSnapshot, Player, Team
 
 
 def get_ball_holder(snapshot: GameSnapshot):
