@@ -1,6 +1,6 @@
+from .. import Point
 from ..mapper import Mapper
 from .utils.defaults import DefaultInitBundle
-from . import lugo
 from .loader import EnvVarLoader
 from .interface import Bot
 from .client import RawTurnProcessor, NewClientFromConfig
@@ -14,7 +14,7 @@ def NewDefaultStarter():
     return Starter(defaultInitialPosition, defaultConfig, defaultMapper)
 
 class Starter:
-    def __init__(self, initial_position: lugo.Point, config: EnvVarLoader, mapper: Mapper):
+    def __init__(self, initial_position: Point, config: EnvVarLoader, mapper: Mapper):
         self.initial_position = initial_position
         self.config = config
         self.mapper = mapper
@@ -28,7 +28,7 @@ class Starter:
     def get_initial_position(self):
         return self.initial_position
 
-    def set_initial_position(self, initial_position: lugo.Point):
+    def set_initial_position(self, initial_position: Point):
         self.initial_position = initial_position
 
     def get_config(self):

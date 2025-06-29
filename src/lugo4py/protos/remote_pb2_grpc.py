@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-from . import remote_pb2 as remote__pb2
+import remote_pb2 as remote__pb2
 
 
 class RemoteStub(object):
@@ -51,6 +51,21 @@ class RemoteStub(object):
                 '/lugo.Remote/ResumeListeningPhase',
                 request_serializer=remote__pb2.ResumeListeningRequest.SerializeToString,
                 response_deserializer=remote__pb2.ResumeListeningResponse.FromString,
+                )
+        self.ResetPlayerPositions = channel.unary_unary(
+                '/lugo.Remote/ResetPlayerPositions',
+                request_serializer=remote__pb2.ResetPlayerPositionsRequest.SerializeToString,
+                response_deserializer=remote__pb2.ResetPlayerPositionsResponse.FromString,
+                )
+        self.ResetGame = channel.unary_unary(
+                '/lugo.Remote/ResetGame',
+                request_serializer=remote__pb2.ResetGameRequest.SerializeToString,
+                response_deserializer=remote__pb2.CommandResponse.FromString,
+                )
+        self.GetGameSnapshot = channel.unary_unary(
+                '/lugo.Remote/GetGameSnapshot',
+                request_serializer=remote__pb2.GameSnapshotRequest.SerializeToString,
+                response_deserializer=remote__pb2.GameSnapshotResponse.FromString,
                 )
 
 
@@ -102,6 +117,24 @@ class RemoteServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def ResetPlayerPositions(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ResetGame(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetGameSnapshot(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_RemoteServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -139,6 +172,21 @@ def add_RemoteServicer_to_server(servicer, server):
                     servicer.ResumeListeningPhase,
                     request_deserializer=remote__pb2.ResumeListeningRequest.FromString,
                     response_serializer=remote__pb2.ResumeListeningResponse.SerializeToString,
+            ),
+            'ResetPlayerPositions': grpc.unary_unary_rpc_method_handler(
+                    servicer.ResetPlayerPositions,
+                    request_deserializer=remote__pb2.ResetPlayerPositionsRequest.FromString,
+                    response_serializer=remote__pb2.ResetPlayerPositionsResponse.SerializeToString,
+            ),
+            'ResetGame': grpc.unary_unary_rpc_method_handler(
+                    servicer.ResetGame,
+                    request_deserializer=remote__pb2.ResetGameRequest.FromString,
+                    response_serializer=remote__pb2.CommandResponse.SerializeToString,
+            ),
+            'GetGameSnapshot': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetGameSnapshot,
+                    request_deserializer=remote__pb2.GameSnapshotRequest.FromString,
+                    response_serializer=remote__pb2.GameSnapshotResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -269,5 +317,56 @@ class Remote(object):
         return grpc.experimental.unary_unary(request, target, '/lugo.Remote/ResumeListeningPhase',
             remote__pb2.ResumeListeningRequest.SerializeToString,
             remote__pb2.ResumeListeningResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ResetPlayerPositions(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/lugo.Remote/ResetPlayerPositions',
+            remote__pb2.ResetPlayerPositionsRequest.SerializeToString,
+            remote__pb2.ResetPlayerPositionsResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ResetGame(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/lugo.Remote/ResetGame',
+            remote__pb2.ResetGameRequest.SerializeToString,
+            remote__pb2.CommandResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetGameSnapshot(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/lugo.Remote/GetGameSnapshot',
+            remote__pb2.GameSnapshotRequest.SerializeToString,
+            remote__pb2.GameSnapshotResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

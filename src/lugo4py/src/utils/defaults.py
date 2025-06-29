@@ -1,18 +1,21 @@
 from ...mapper import Mapper
 from ..loader import EnvVarLoader
-from .. import lugo
+from ...protos.physics_pb2 import Point
 from typing import Tuple
 
-def DefaultInitBundle() -> Tuple[EnvVarLoader, Mapper, lugo.Point]:
+def DefaultInitBundle() -> Tuple[EnvVarLoader, Mapper, Point]:
     defaultConfig = EnvVarLoader()
 
-    defaultMapper = Mapper(10, 6, defaultConfig.get_bot_team_side())
+    defaultMapper = Mapper(DEFAULT_MAPPER_COLS, DEFAULT_MAPPER_ROWS, defaultConfig.get_bot_team_side())
 
     initialRegion = defaultMapper.get_region(DEFAULT_PLAYER_POSITIONS[defaultConfig.get_bot_number()]["Col"], DEFAULT_PLAYER_POSITIONS[defaultConfig.get_bot_number()]["Row"])
 
     defaultInitialPosition = initialRegion.get_center()
 
     return [ defaultConfig, defaultMapper, defaultInitialPosition]
+
+DEFAULT_MAPPER_COLS = 10
+DEFAULT_MAPPER_ROWS = 6
 
 DEFAULT_PLAYER_POSITIONS = {
     1: {"Col": 0, "Row": 0},

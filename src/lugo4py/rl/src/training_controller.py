@@ -1,149 +1,107 @@
-import asyncio
-from .remote_control import RemoteControl
-from .interfaces import TrainingController, BotTrainer, TrainingFunction
-from ...protos.server_pb2 import GameSnapshot, OrderSet
-import threading
-from concurrent.futures import ThreadPoolExecutor
+import contextlib
+import grpc
 import time
+from typing import Any, Dict, Tuple, List
+
+from ... import Bot, Team, GameSnapshotInspector, Order
+from ...protos.remote_pb2_grpc import RemoteStub
+from ...protos.rl_assistant_pb2 import RLResetConfig, PlayerOrdersOnRLSession, PlayersOrders
+from ...protos.rl_assistant_pb2_grpc import RLAssistant
+from ...rl.src.contracts import BotTrainer
+from ...src.define_state import define_state, PLAYER_STATE
 
 
+class TrainingCrl:
+    def __init__(self, trainer: BotTrainer, bots: Dict[Tuple[Team.Side.ValueType, int], Bot], remote: RemoteStub,
+                 assistant: RLAssistant,
+                 normal_speed: bool = False
+                 ):
+        self.remote = remote
+        self.assistant = assistant
+        self.trainer = trainer
+        self.latest_snapshot = None
+        self.bots = bots
+        self.normal_speed = normal_speed
 
-
-class TrainingCrl(TrainingController):
-
-    def __init__(self, executor: ThreadPoolExecutor, remoteControl: RemoteControl, bot: BotTrainer, onReadyCallback: TrainingFunction):
-        self._gotNextState = lambda snapshot: print("got first snapshot")
-        self.logger = lambda msg: print(f'set debugger')
-        self.previousState = None
-        self.remoteControl = remoteControl  # type: RemoteControl
-        self.onReady = onReadyCallback
-        self.trainingHasStarted = False
-        self.lastSnapshot = None  # type: GameSnapshot
-        self.onListeningMode = False
-        self.OrderSet = None
-        self.cycleSeq = 0
-        self.bot = bot  # type: BotTrainer
-        self.debugging_log = False
-        self.stopRequested = threading.Event()
-        self.trainingExecutor = executor
-        self.resumeListeningPhase = lambda action: print(
-            'resumeListeningPhase not defined yet - should wait the initialise it on the first "update" call')
-
-    def set_environment(self, data):
-        self.logger('Reset state')
+    def set_environment(self, data: Any) -> None:
         try:
-            self.lastSnapshot = self.bot.set_environment(data)
-            return self.bot.get_state(self.lastSnapshot)
+            self.latest_snapshot = self.trainer.create_new_initial_state(data)
         except Exception as e:
-            print('bot trainer failed to create initial state: ', e)
-            raise e
-
-    def get_state(self):
-        try:
-            self.cycleSeq = self.cycleSeq + 1
-            self.logger('get state')
-            return self.bot.get_state(self.lastSnapshot)
-        except Exception as e:
-            print('bot trainer failed to return inputs from a particular state', e)
-            raise e
-
-    def update(self, action: any):
-        self.logger('received action from training bot')
-        if not self.onListeningMode:
-            raise ValueError('faulty synchrony - got a new action when was still processing the last one')
+            raise RuntimeError(f"Failed to set environment: {e}")
 
         try:
-            previousState = self.lastSnapshot
-            self.OrderSet.turn = self.lastSnapshot.turn
-            updatedOrderSet = self.bot.play(self.OrderSet, self.lastSnapshot, action)
+            self.assistant.ResetEnv(request=RLResetConfig())
+        except grpc.RpcError as e:
+            raise RuntimeError(f"Failed to reset RL assistant: {e}")
 
-            self.logger('got order set, passing down')
+    def get_state(self) -> Any:
+        return self.trainer.get_training_state(self.latest_snapshot)
 
-            self.resumeListeningPhase(updatedOrderSet)
-            #time.sleep(2.4)  # before calling next turn, let's wait just a bit to ensure the server got our order
-            self.lastSnapshot = self.wait_until_next_listening_state()
-
-            self.logger('got new snapshot after order has been sent')
-
-            if self.stopRequested.is_set():
-                return None
-
-            # TODO: if I want to skip the net N turns? I should be able too
-            self.logger(f"update finished (turn {self.lastSnapshot.turn} waiting for next action)")
+    def update(self, action: Any) -> tuple[float, bool]:
+        try:
+            players_orders = self.trainer.play(self.latest_snapshot, action)
         except Exception as e:
-            print('failed send new action to the server: ', e)
-            raise e
+            raise RuntimeError(f"Trainer bot failed to play: {e}")
 
         try:
-            return self.bot.evaluate(previousState, self.lastSnapshot)
-        except Exception as e:
-            print('bot trainer failed to evaluate game state', e)
-            raise e
+            complete_list = self.ensure_all_players_have_orders(players_orders.players_orders,
+                                                                players_orders.default_behaviour)
 
-    def gameTurnHandler(self, order_set, snapshot):
-        if self.stopRequested.is_set():
-            self.logger('skipping turn handler because the stop request')
-            return None
-        self.logger('new turn')
-        if self.onListeningMode:
-            raise RuntimeError(
-                "faulty synchrony - got new turn while waiting for order (check the lugo 'timer-mode')")
+            complete_play_orders = PlayersOrders()
+            complete_play_orders.default_behaviour = players_orders.default_behaviour
+            complete_play_orders.players_orders.extend(complete_list)
 
-        self._gotNextState(snapshot)
-        self.OrderSet = order_set
+            turn_outcome = self.assistant.SendPlayersOrders(complete_play_orders)
+        except grpc.RpcError as e:
+            raise RuntimeError(f"RL assistant failed to send the orders: {e}")
 
-        waiter = threading.Event()
-        new_order_set = None
+        if self.normal_speed:
+            time.sleep(.05)
+        previous_snapshot = self.latest_snapshot
+        self.latest_snapshot = turn_outcome.game_snapshot
+        return self.trainer.evaluate(previous_snapshot, turn_outcome.game_snapshot, turn_outcome)
 
-        def resume(updated_order_set):
-            nonlocal new_order_set
-            new_order_set = updated_order_set
-            waiter.set()
-            self.logger(f'Sending new action')
+    def ensure_all_players_have_orders(self, player_orders_list, default_behaviour):
+        result = {(order.team_side, order.number): order for order in player_orders_list}
 
-        self.resumeListeningPhase = resume
-        self.onListeningMode = True
-        if self.trainingHasStarted is False:
-            self.trainingExecutor.submit(self.onReady, self, self.stopRequested)
-            self.trainingHasStarted = True
-            self.logger(f'the training has started')
+        for number in range(1, 12):  # Player numbers 1 to 11
+            # Home team
+            key = (Team.Side.HOME, number)
+            if key not in result:
+                if (Team.Side.HOME, number) in self.bots:
+                    result[key] = self.create_new_order_from_bot(self.bots[Team.Side.HOME, number], Team.Side.HOME, number,
+                                                             default_behaviour)
 
-        self.logger(f'Waiting get new update!')
-        waiter.wait(timeout=5)
-        self.logger(f'order sent to the game server')
-        return new_order_set
+            # Away team
+            key = (Team.Side.AWAY, number)
+            if key not in result:
+                if (Team.Side.AWAY, number) in self.bots:
+                    result[key] = self.create_new_order_from_bot(self.bots[Team.Side.AWAY, number], Team.Side.AWAY, number,
+                                                             default_behaviour)
 
-    def wait_until_next_listening_state(self) -> GameSnapshot:
-        try:
-            self.onListeningMode = False
-            waiter = threading.Event()
+        return list(result.values())
 
-            new_snapshot = None
-            def resume(newGameSnapshot):
-                nonlocal new_snapshot
-                new_snapshot = newGameSnapshot
-                waiter.set()
+    def create_new_order_from_bot(self, bot: Bot, team_side: Team.Side, number: int,
+                                  default_behaviour) -> PlayerOrdersOnRLSession:
+        inspector = GameSnapshotInspector(team_side, number, self.latest_snapshot)
 
-            self._gotNextState = resume
+        player_state = define_state(inspector, number, team_side)
+        orders: List[Order] = []
+        if number == 1:
+            orders = bot.as_goalkeeper(inspector, player_state)
+        else:
+            if player_state == PLAYER_STATE.DISPUTING_THE_BALL:
+                orders = bot.on_disputing(inspector)
+            elif player_state == PLAYER_STATE.DEFENDING:
+                orders = bot.on_defending(inspector)
+            elif player_state == PLAYER_STATE.SUPPORTING:
+                orders = bot.on_supporting(inspector)
+            elif player_state == PLAYER_STATE.HOLDING_THE_BALL:
+                orders = bot.on_holding(inspector)
 
-
-            waiterResumeListening = threading.Event()
-            self.trainingExecutor.submit(self.remoteControl.resume_listening, waiterResumeListening)
-            waiterResumeListening.wait()
-
-            waiter.wait(timeout=3)
-            if new_snapshot is None:
-                raise RuntimeError(
-                    "timed out waiting for the next listening state - check the training controller")
-
-            self.logger(f'resume_listening: {new_snapshot.turn}')
-
-            return new_snapshot
-        except Exception as e:
-            self.logger(f'failed to send the orders to the server {e}')
-            raise
-
-    def stop(self):
-        self.stopRequested.set()
-
-
+        new_order = PlayerOrdersOnRLSession()
+        new_order.team_side = team_side
+        new_order.number = number
+        new_order.behaviour = default_behaviour
+        new_order.orders.extend(orders)
+        return new_order

@@ -1,98 +1,73 @@
-import time
-
-from .training_controller import TrainingCrl
-from .helper_bots import newChaserHelperPlayer, newZombieHelperPlayer
-from .remote_control import RemoteControl
-from .interfaces import BotTrainer, TrainingFunction
-from ...src import client
-from ...protos.server_pb2 import Team
-import threading
-
+import contextlib
+import traceback
 from concurrent.futures import ThreadPoolExecutor
 
+import grpc
+import time
+from typing import Any, Iterator, Callable
+
+from .configuator import Configurator
+from ... import GameSnapshot, Remote, RemoteStub, log_with_time, Bot, Team, Point, Mapper, TeamSide
+from ...protos.rl_assistant_pb2 import RLSessionConfig
+from ...protos.rl_assistant_pb2_grpc import RLAssistantStub
+from ...rl.src.training_controller import TrainingCrl
+from ...rl.src.contracts import BotTrainer, TrainingFunction
+from ...src.utils.defaults import DEFAULT_PLAYER_POSITIONS, DEFAULT_MAPPER_COLS, DEFAULT_MAPPER_ROWS
+
+Maker = Callable[[Configurator], Bot]
 
 class Gym:
 
-    def __init__(
-            self,
-            executor: ThreadPoolExecutor,
-            remote_control: RemoteControl,
-            trainer: BotTrainer,
-            trainingFunction: TrainingFunction,
-            options=None,
-    ):
-        if options is None:
-            options = {"debugging_log": False}
+    def __init__(self, executor: ThreadPoolExecutor,  grpc_address):
 
-        self.remoteControl = remote_control
-        self.debugging_log = options["debugging_log"]
-        self.trainingCrl = TrainingCrl(executor,
-                                       remote_control, trainer, trainingFunction)
+        channel = grpc.insecure_channel(grpc_address)
 
-        self.trainingCrl.logger = self._debug
-        self.gameServerAddress = None
-        self.helperPlayers = None
-        self.players = []
+        # Block until channel is ready (or timeout)
+        grpc.channel_ready_future(channel).result(timeout=5)
 
-    def start(self, lugo_client: client.LugoClient, executor: ThreadPoolExecutor):
-        hasStarted = False
+        self.remote = RemoteStub(channel)
+        self.assistant = RLAssistantStub(channel)
+        self.executor = executor
+        self.my_bots = {}
 
-        def play_callback(orderSet, snapshot):
-            nonlocal hasStarted
-            hasStarted = True
-            return self.trainingCrl.gameTurnHandler(orderSet, snapshot)
+    def create_team_bots(self, team: TeamSide, factory: Maker):
+        default_mapper = Mapper(DEFAULT_MAPPER_COLS, DEFAULT_MAPPER_ROWS, team)
 
-        def trigger_listening() -> None:
-            nonlocal hasStarted
-            if hasStarted is False:
-                waiter = threading.Event()
-                executor.submit(self.remoteControl.resume_listening, waiter)
-                waiter.wait()
-
-        def on_join() -> None:
-            self._debug('The main bot is connected!! Starting to connect the zombies')
-            time.sleep(0.2)
-            if self.gameServerAddress:
-                self.players = self.helperPlayers(self.gameServerAddress, executor)
-            self._debug('helpers are done')
-            trigger_listening()
-
-        lugo_client.play(executor, play_callback, on_join)
-        return lugo_client
-
-    def stop(self):
-        self.trainingCrl.stop()
-        for player in self.players:
-            player.stop()
-
-    def with_zombie_players(self, game_server_address):
-        self._debug('Entering with_zombie_players\n')
-        self.gameServerAddress = game_server_address
-        self.helperPlayers = create_helper_players
-        return self
-
-    def withChasersPlayers(self, game_server_address):
-        self.gameServerAddress = game_server_address
-
-        def helper_players(game_server_address):
-            for i in range(1, 12):
-                newChaserHelperPlayer(Team.Side.HOME, i, game_server_address)
-                newChaserHelperPlayer(Team.Side.AWAY, i, game_server_address)
-
-        self.helperPlayers = helper_players(game_server_address)
-        return self
-
-    def _debug(self, message: str):
-        if self.debugging_log:
-            t = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-            print(f"[Debugger {t}] {message}")
+        for number in range(1, 12):  # Player numbers 1 to 11
+            configurator = Configurator(
+                team,
+                number,
+                default_mapper.get_region(DEFAULT_PLAYER_POSITIONS[number]["Col"], DEFAULT_PLAYER_POSITIONS[number]["Row"]).get_center(),
+                default_mapper
+            )
+            self.my_bots[(team, number)] = factory(configurator)
 
 
-def create_helper_players(gameServerAddress: str, executor: ThreadPoolExecutor):
-    children = []
-    for i in range(0, 11):
-        time.sleep(0.01)
-        children.append(newZombieHelperPlayer(Team.Side.HOME, i + 1, gameServerAddress, executor))
-        time.sleep(0.01)
-        children.append(newZombieHelperPlayer(Team.Side.AWAY, i + 1, gameServerAddress, executor))
-    return children
+    def start(self, trainer: BotTrainer, training_function: TrainingFunction, normal_speed: bool = False) -> None:
+
+        training_ctrl = TrainingCrl(trainer, self.my_bots, self.remote, self.assistant, normal_speed)
+
+        response_iterator = self.assistant.StartSession(request=RLSessionConfig())
+
+
+        self._training_routine = self.executor.submit(self._response_watcher, response_iterator)
+
+
+        time.sleep(2)
+        training_function(training_ctrl)
+
+    def _response_watcher(
+        self,
+        response_iterator: Iterator[GameSnapshot],
+        ) -> None:
+        try:
+            for snapshot in response_iterator:
+                log_with_time(f"still alive")
+
+            # self._play_finished.set()
+        except grpc.RpcError as e:
+            if grpc.StatusCode.INVALID_ARGUMENT == e.code():
+                log_with_time(f"did not connect to RL session {e.details()}")
+        except Exception as e:
+            log_with_time(f"internal error processing RL session: {e}")
+            traceback.print_exc()

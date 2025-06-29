@@ -1,7 +1,7 @@
-from ..protos.server_pb2 import Order
+from ..protos.physics_pb2 import Point
+from ..protos.server_pb2 import Order, Team
 from .game_snapshot_inspector import GameSnapshotInspector
 from .define_state import PLAYER_STATE
-from . import lugo
 from ..mapper import Mapper
 from abc import ABC, abstractmethod
 from typing import List
@@ -27,7 +27,7 @@ class Bot(ABC):
     Usage:
     Define a subclass of Bot and implement the abstract methods for specific bot behaviors.
     """
-    def __init__(self, side: lugo.TeamSide, number: int, init_position: lugo.Point, my_mapper: Mapper):
+    def __init__(self, side: Team.Side, number: int, init_position: Point, my_mapper: Mapper):
         self.number = number
         self.side = side
         self.mapper = my_mapper

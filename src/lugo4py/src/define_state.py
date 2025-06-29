@@ -1,5 +1,5 @@
 from .game_snapshot_inspector import GameSnapshotInspector
-from .lugo import TeamSide
+from ..protos.server_pb2 import Team
 
 class PlayerState(object):
     """
@@ -22,7 +22,7 @@ class PlayerState(object):
 
 PLAYER_STATE = PlayerState()
 
-def define_state(inspector: GameSnapshotInspector, player_number: int, side: TeamSide) -> PLAYER_STATE:
+def define_state(inspector: GameSnapshotInspector, player_number: int, side: Team.Side) -> PLAYER_STATE:
     if not inspector or not inspector.get_ball():
         raise AttributeError(
             'invalid snapshot state - cannot define player state')
