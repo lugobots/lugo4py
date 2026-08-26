@@ -92,7 +92,7 @@ GOALKEEPER_JUMP_SPEED = 2 * player_max_speed
 GOALKEEPER_NUMBER = 1
 
 # GOALKEEPER_SIZE is the width of the goalkeeper
-GOALKEEPER_SIZE = PLAYER_SIZE * 2.3,
+GOALKEEPER_SIZE = PLAYER_SIZE * 2.3
 
 # Number of turns each teams has on attack before losing the ball possession.
 SHOT_CLOCK_TIME = 300
