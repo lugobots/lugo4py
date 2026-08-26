@@ -120,6 +120,7 @@ class GameSnapshotInspector:
         order.catch.SetInParent()
         return order
 
+    @staticmethod
     def get_orientation_by_direction(direction: DIRECTION, my_side: lugo.TeamSide):
         if direction == DIRECTION.FORWARD:
             return ORIENTATION.EAST if my_side == lugo.TeamSide.HOME else ORIENTATION.WEST
